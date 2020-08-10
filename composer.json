@@ -1,0 +1,19 @@
+{
+  "name": "bbn/bbn-router",
+  "description": "Offical router file for BBN",
+  "keywords": ["cms","intranet","spa","appui","router"],
+  "homepage": "https://gitea.bbn.so/bbn-solutions/bbn-router",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Thomas Nabet",
+      "email": "thomas.nabet@gmail.com",
+      "homepage": "https://bbn.solutions",
+      "role": "Developer"
+    }
+  ],
+  "require": {
+    "php": ">=7.3",
+    "bbn/bbn": "dev-master"
+  }
+}
