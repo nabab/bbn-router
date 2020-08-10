@@ -2,7 +2,7 @@
   "name": "bbn/bbn-router",
   "description": "Offical router file for BBN",
   "keywords": ["cms","intranet","spa","appui","router"],
-  "homepage": "https://gitea.bbn.so/bbn-solutions/bbn-router",
+  "homepage": "https://github.com/nabab/bbn-router",
   "license": "MIT",
   "authors": [
     {
