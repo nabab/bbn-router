@@ -33,7 +33,7 @@
     $cfgs = json_decode($tmp, true);
   }
   if (empty($cfgs)) {
-    die('No environment fileSSS.');
+    die('No environment files.');
   }
   $hostname = gethostname();
   foreach ($cfgs as $c) {
