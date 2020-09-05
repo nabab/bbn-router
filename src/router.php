@@ -255,7 +255,6 @@
         BBN_SESSION : '\\bbn\\user\\session';
       $bbn->session = new $session_cls($defaults);
       $bbn->mvc->add_inc('session', $bbn->session);
-
       $user_cls = is_string(BBN_USER) && class_exists(BBN_USER) ?
         BBN_USER : '\\bbn\\user';
       $bbn->mvc->add_inc(
@@ -307,6 +306,15 @@
   }
 
   if ($bbn->mvc->check()) {
+    /*
+    die(var_dump(
+      $bbn->mvc->get_url(),
+      $bbn->mvc->get_file(),
+      $bbn->mvc->get_files(),
+      $bbn->mvc->inc->user->check(),
+      $bbn->mvc->_controller
+    ));
+    */
     $bbn->mvc->process();
     if ($bbn->is_cli) {
       //file_put_contents(BBN_DATA_PATH.'cli.txt', "0");
