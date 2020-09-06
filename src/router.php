@@ -143,6 +143,8 @@
     }
   );
   include BBN_LIB_PATH . 'autoload.php';
+  //$chrono = new \bbn\util\timer();
+  //$chrono->start();
 
   // This application is in utf8
   mb_internal_encoding('UTF-8');
@@ -153,8 +155,9 @@
   ini_set('error_log', BBN_DATA_PATH . 'logs/_php_error.log');
   set_error_handler('\\bbn\\x::log_error', E_ALL);
 
-  \bbn\cache::get_engine('file');
+  \bbn\cache::get_engine('files');
   
+  $routes = false;
   // How to find out the default locale formating ?
   if (defined('BBN_LANG') && !defined('BBN_LOCALE')) {
     $locales = [
@@ -202,7 +205,6 @@
   if (BBN_IS_DEV) {
     bbn\mvc::debug();
   }
-  $routes = false;
   if (function_exists('yaml_parse') && file_exists('cfg/routes.yml') && ($tmp = file_get_contents('cfg/routes.yml'))) {
     $routes = yaml_parse($tmp);
   }
@@ -217,7 +219,8 @@
   if (!defined('BBN_DATABASE') || (BBN_DATABASE === '')) {
     $bbn->db = false;
     $bbn->dbs = [];
-  } else {
+  }
+  else {
     $bbn->db = new bbn\db();
     $bbn->dbs = [&$bbn->db];
   }
