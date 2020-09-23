@@ -155,7 +155,20 @@
   ini_set('error_log', BBN_DATA_PATH . 'logs/_php_error.log');
   set_error_handler('\\bbn\\x::log_error', E_ALL);
 
-  \bbn\cache::get_engine('files');
+  $cache = \bbn\cache::get_engine('files');
+  if ($cache_cfg = $cache->get('cfg_files')) {
+    $cfg_files = $cache_cfg;
+  }
+  else {
+    $cfg_files = [
+      'custom1' => file_exists('cfg/custom1.php'),
+      'custom2' => file_exists('cfg/custom2.php'),
+      'custom3' => file_exists('cfg/custom3.php'),
+      'session' => file_exists('cfg/session.json'),
+      'end' => file_exists('cfg/end.php')
+    ];
+    $cache->set('cfg_files', $cfg_files, 600);
+  }
   
   $routes = false;
   // How to find out the default locale formating ?
@@ -239,16 +252,20 @@
     );
   }
   // Loading users scripts before session is set (but it is started)
-  @include 'cfg/custom1.php';
+  if ($cfg_files['custom1']) {
+    include_once 'cfg/custom1.php';
+  }
 
   // CLI
   if (!$bbn->is_cli) {
-    $default = @file_get_contents('cfg/session.json');
-    if ($default) {
-      $default = json_decode($default, true);
-    }
-    if (is_array($default)) {
-      $defaults = array_merge($bbn->vars['default_session'], $default);
+    if ($cfg_files['session']) {
+      $default = file_get_contents('cfg/session.json');
+      if ($default) {
+        $default = json_decode($default, true);
+        if (is_array($default)) {
+          $defaults = array_merge($bbn->vars['default_session'], $default);
+        }
+      }
     }
     else {
       $defaults = $bbn->vars['default_session'];
@@ -287,7 +304,9 @@
         );
       }
     }
-    @include 'cfg/custom2.php';
+    if ($cfg_files['custom2']) {
+      include_once 'cfg/custom2.php';
+    }
   }
   elseif (defined('BBN_USER') && BBN_USER && defined('BBN_EXTERNAL_USER_ID')) {
     $user_cls = is_string(BBN_USER) && class_exists(BBN_USER) ?
@@ -322,8 +341,8 @@
     if ($bbn->is_cli) {
       //file_put_contents(BBN_DATA_PATH.'cli.txt', "0");
     }
-    else {
-      @include 'cfg/custom3.php';
+    elseif ($cfg_files['custom3']) {
+      include_once 'cfg/custom3.php';
     }
   }
   $bbn->mvc->output();
