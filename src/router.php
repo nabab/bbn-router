@@ -26,6 +26,8 @@
   $bbn = new stdClass();
   $bbn->is_cli = php_sapi_name() === 'cli';
   $app_path = dirname(getcwd()).'/';
+  //$app_path = __DIR__.'/';
+  //chdir($app_path);
   if (function_exists('yaml_parse') && file_exists('cfg/environment.yml') && ($tmp = file_get_contents('cfg/environment.yml'))) {
     $cfgs = yaml_parse($tmp);
   }
@@ -33,7 +35,7 @@
     $cfgs = json_decode($tmp, true);
   }
   if (empty($cfgs)) {
-    die('No environment files.');
+    die("No environment files in $app_path    ".getcwd());
   }
   $hostname = gethostname();
   foreach ($cfgs as $c) {
@@ -62,9 +64,6 @@
   }
   elseif (function_exists('json_decode') && file_exists('cfg/settings.json') && ($tmp = file_get_contents('cfg/settings.json'))) {
     $tmp = json_decode($tmp, true);
-  }
-  if (empty($cfgs)) {
-    die('No environment file.');
   }
   if (!$tmp) {
     die('impossible to read the configuration file (settings.json).');
