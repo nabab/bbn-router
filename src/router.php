@@ -21,6 +21,7 @@
  * @see        mvc
  */
 (function ($installer) {
+  $timings = false;
   @ini_set('zlib.output_compression', 'off');
   /** The only/main object */
   $bbn = new stdClass();
@@ -142,8 +143,10 @@
     }
   );
   include BBN_LIB_PATH . 'autoload.php';
-  //$chrono = new \bbn\util\timer();
-  //$chrono->start();
+  if ($timings) {
+    $chrono = new \bbn\util\timer();
+    $chrono->start();
+  }
 
   // This application is in utf8
   mb_internal_encoding('UTF-8');
@@ -168,7 +171,9 @@
     ];
     $cache->set('cfg_files', $cfg_files, 600);
   }
-  
+  if ($timings) {
+    \bbn\x::log(['config file', $chrono->measure()], 'timings');
+  }
   $routes = false;
   // How to find out the default locale formating ?
   if (defined('BBN_LANG') && !defined('BBN_LOCALE')) {
@@ -237,8 +242,14 @@
     $bbn->dbs = [&$bbn->db];
   }
 
+  if ($timings) {
+    \bbn\x::log(['DB', $chrono->measure()], 'timings');
+  }
   $bbn->mvc = new bbn\mvc($bbn->db, $routes ?: []);
 
+  if ($timings) {
+    \bbn\x::log(['MVC', $chrono->measure()], 'timings');
+  }
   bbn\mvc::set_db_in_controller(true);
 
   define('BBN_PID', getmypid());
@@ -325,8 +336,14 @@
       );
     }
   }
+  if ($timings) {
+    \bbn\x::log(['All set up', $chrono->measure()], 'timings');
+  }
 
   if ($bbn->mvc->check()) {
+    if ($timings) {
+      \bbn\x::log(['checked', $chrono->measure()], 'timings');
+    }
     /*
     die(var_dump(
       $bbn->mvc->get_url(),
@@ -337,12 +354,21 @@
     ));
     */
     $bbn->mvc->process();
+    if ($timings) {
+      \bbn\x::log(['processed', $chrono->measure()], 'timings');
+    }
     if ($bbn->is_cli) {
       //file_put_contents(BBN_DATA_PATH.'cli.txt', "0");
     }
     elseif ($cfg_files['custom3']) {
       include_once 'cfg/custom3.php';
     }
+    if ($timings) {
+      \bbn\x::log(['custom 3', $chrono->measure()], 'timings');
+    }
   }
   $bbn->mvc->output();
+  if ($timings) {
+    \bbn\x::log(['output', $chrono->measure()], 'timings');
+  }
 })($installer ?? null);
