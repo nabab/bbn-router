@@ -21,36 +21,60 @@
  * @see        mvc
  */
 (function ($installer) {
-  $timings = false;
+  $message = '
+The following error occurred: %s.
+
+In order to repair or redo your installation you need to download the following script:
+<a href="https://app-ui.com/download/bbn-install.php">bbn-install.php</a>
+and put it in the public root of your web server.
+';
+  /** @todo Not sure why... */
   @ini_set('zlib.output_compression', 'off');
   /** The only/main object */
   $bbn = new stdClass();
   $bbn->is_cli = php_sapi_name() === 'cli';
+  /** @var string Current directory which MUST be the root of the project where the symlink to rhis file is located */
   $app_path = dirname(getcwd()).'/';
-  //$app_path = __DIR__.'/';
-  //chdir($app_path);
-  if (function_exists('yaml_parse') && file_exists('cfg/environment.yml') && ($tmp = file_get_contents('cfg/environment.yml'))) {
+  // Parsing YAML environment's configuration
+  if (function_exists('yaml_parse')
+      && file_exists('cfg/environment.yml')
+      && ($tmp = file_get_contents('cfg/environment.yml'))
+  ) {
+    /** @var array Environment's configuration */
     $cfgs = yaml_parse($tmp);
   }
-  elseif (function_exists('json_decode') && file_exists('cfg/environment.json') && ($tmp = file_get_contents('cfg/environment.json'))) {
+  // Or parsing JSON environment's configuration
+  elseif (function_exists('json_decode')
+      && file_exists('cfg/environment.json')
+      && ($tmp = file_get_contents('cfg/environment.json'))
+  ) {
+    /** @var array ENvironment's configuration */
     $cfgs = json_decode($tmp, true);
   }
+
+  // If no readable environment's configuration is found the app is not configured correctly
   if (empty($cfgs)) {
     die("No environment files in $app_path    ".getcwd());
   }
+
+  /** @var string The hostname */
   $hostname = gethostname();
+  // Checking each configuration
   foreach ($cfgs as $c) {
+    // Looking for the corresponding hostname and app path
     if (isset($c['hostname']) && ($c['hostname'] === $hostname) && ($c['app_path'] === $app_path)) {
-      /** @var array $cfg */
+      /** @var array The current configuration */
       $cfg = $c;
       break;
     }
   }
+
+  // If no corresponding configuration is found the app is not configured correctly
   if (!isset($cfg)) {
     die('No parameter corresponding to the current configuration.');
   }
 
-  // Redirection to https in case of SSL
+  // Redirection to https in case of SSL configuration
   if (!$bbn->is_cli
       && !empty($cfg['is_ssl'])
       && ($_SERVER['REQUEST_SCHEME'] === 'http')
@@ -59,6 +83,7 @@
     exit;
   }
 
+  /** @var mixed Temporary variable for the general settings, which should be an array */
   $tmp = false;
   if (function_exists('yaml_parse') && file_exists('cfg/settings.yml') && ($tmp = file_get_contents('cfg/settings.yml'))) {
     $tmp = yaml_parse($tmp);
@@ -66,58 +91,62 @@
   elseif (function_exists('json_decode') && file_exists('cfg/settings.json') && ($tmp = file_get_contents('cfg/settings.json'))) {
     $tmp = json_decode($tmp, true);
   }
+
+  // If no general setting is found the app is not configured correctly
   if (!$tmp) {
     die('impossible to read the configuration file (settings.json).');
   }
+
+  // The cfg array becomes a mix of current environment and settings
   $cfg = array_merge($cfg, $tmp);
 
+  // Each value in thew array will define a constant with prefix BBN_
   foreach ($cfg as $n => $c) {
     if ($n === 'env') {
       define('BBN_IS_DEV', $c === 'dev');
       define('BBN_IS_TEST', $c === 'test');
       define('BBN_IS_PROD', $c === 'prod');
     }
+
     /* @constant string BBN_SERVER_NAME The server's name as in the app's URL */
     /* @constant BBN_CUR_PATH */
     define('BBN_' . strtoupper($n), $c);
   }
+
+  // Is SSL is false by default
+  /** @todo change it? */
   if (!defined('BBN_IS_SSL')) {
     define('BBN_IS_SSL', false);
   }
+
+  // Default web port
   if (!defined('BBN_PORT')) {
     define('BBN_PORT', BBN_IS_SSL ? 443 : 80);
   }
 
-  // Creating the URL
-  $tmp = 'http';
-  if (BBN_IS_SSL) {
-    $tmp .= 's';
+  /** @var string The base URL of the application */
+  $url = 'http'
+      .(BBN_IS_SSL ? 's' : '')
+      .'://' . BBN_SERVER_NAME
+      .(BBN_PORT && !in_array(BBN_PORT, [80, 443]) ? ':'.BBN_PORT : '')
+      .(BBN_CUR_PATH ? BBN_CUR_PATH : '');
+  if (substr($url, -1) !== '/') {
+    $url .= '/';
   }
-  $tmp .= '://' . BBN_SERVER_NAME;
-  if (BBN_PORT && (BBN_PORT != 80) && (BBN_PORT != 443)) {
-    $tmp .= ':' . BBN_PORT;
-  }
-  if (BBN_CUR_PATH) {
-    $tmp .= BBN_CUR_PATH;
-    if (substr(BBN_CUR_PATH, -1) !== '/') {
-      $tmp .= '/';
-    }
-  }
-  define('BBN_URL', $tmp);
 
+  define('BBN_URL', $url);
+
+  // If the server name is different the request is redirected
   if (!$bbn->is_cli && ($_SERVER['SERVER_NAME'] !== BBN_SERVER_NAME)) {
     header('Location: ' . BBN_URL);
   }
-  // Adding profiling
-  /*
-  if (BBN_IS_DEV) {
-    include BBN_PUBLIC.'../xhgui/external/header.php';
-  }
-  */
+
+  // In case app_prefix isn't defined we use app_name
   if (!defined('BBN_APP_PREFIX') && defined('BBN_APP_NAME')) {
     define('BBN_APP_PREFIX', BBN_APP_NAME);
   }
 
+  // Checking all the necessary constants are defined... or die
   if (!defined('BBN_LIB_PATH')
       || !defined('BBN_APP_PATH')
       || !defined('BBN_DATA_PATH')
@@ -143,6 +172,10 @@
     }
   );
   include BBN_LIB_PATH . 'autoload.php';
+
+  /** @var bool If set to true will log execution timings of the router */
+  $timings = !!(defined('BBN_TIMINGS') && BBN_TIMINGS);
+  // If timing
   if ($timings) {
     $chrono = new \bbn\util\timer();
     $chrono->start();
@@ -157,7 +190,10 @@
   ini_set('error_log', BBN_DATA_PATH . 'logs/_php_error.log');
   set_error_handler('\\bbn\\x::log_error', E_ALL);
 
+  /** @var bbn\cache The cache engine */
   $cache = \bbn\cache::get_engine('files');
+  
+  // Setting the custom files presence in cache
   if ($cache_cfg = $cache->get('cfg_files')) {
     $cfg_files = $cache_cfg;
   }
@@ -171,11 +207,12 @@
     ];
     $cache->set('cfg_files', $cfg_files, 600);
   }
+
   if ($timings) {
     \bbn\x::log(['config file', $chrono->measure()], 'timings');
   }
-  $routes = false;
-  // How to find out the default locale formating ?
+
+  /** @todo Language detection has to be redone */
   if (defined('BBN_LANG') && !defined('BBN_LOCALE')) {
     $locales = [
       BBN_LANG . '_' . strtoupper(BBN_LANG) . '.utf8',
@@ -190,6 +227,7 @@
         break;
       }
     }
+
     if (!defined('BBN_LOCALE')) {
       $locales = [
         'en_EN.utf8',
@@ -211,6 +249,7 @@
     }
   }
 
+  /** @todo default session info, I don't see the point */
   $bbn->vars = [
     'default_session' => [
       'path' => BBN_CUR_PATH,
@@ -218,15 +257,19 @@
     ],
   ];
 
-  // Loading routes configuration
   if (BBN_IS_DEV) {
     bbn\mvc::debug();
   }
+
+  // Loading routes configuration
   if (function_exists('yaml_parse') && file_exists('cfg/routes.yml') && ($tmp = file_get_contents('cfg/routes.yml'))) {
     $routes = yaml_parse($tmp);
   }
   elseif (function_exists('json_decode') && file_exists('cfg/routes.json') && ($tmp = file_get_contents('cfg/routes.json'))) {
     $routes = json_decode($tmp, true);
+  }
+  else {
+    $routes = [];
   }
 
   if ($installer && file_exists('cfg/init.php')) {
@@ -234,10 +277,12 @@
   }
 
   if (!defined('BBN_DATABASE') || (BBN_DATABASE === '')) {
+    // No database
     $bbn->db = false;
     $bbn->dbs = [];
   }
   else {
+    // Database
     $bbn->db = new bbn\db();
     $bbn->dbs = [&$bbn->db];
   }
@@ -245,15 +290,20 @@
   if ($timings) {
     \bbn\x::log(['DB', $chrono->measure()], 'timings');
   }
-  $bbn->mvc = new bbn\mvc($bbn->db, $routes ?: []);
+
+  $bbn->mvc = new bbn\mvc($bbn->db, $routes);
 
   if ($timings) {
     \bbn\x::log(['MVC', $chrono->measure()], 'timings');
   }
+
+  /** @todo Make it depend of a constant from settings */
   bbn\mvc::set_db_in_controller(true);
 
+  // The current PID, is it unique?
   define('BBN_PID', getmypid());
 
+  // Setting up options
   if (defined('BBN_OPTIONS') && BBN_OPTIONS) {
     $options_cls = is_string(BBN_OPTIONS) && class_exists(BBN_OPTIONS) ? BBN_OPTIONS : '\\bbn\\appui\\options';
     $bbn->mvc->add_inc(
@@ -261,6 +311,7 @@
       new $options_cls($bbn->db)
     );
   }
+
   // Loading users scripts before session is set (but it is started)
   if ($cfg_files['custom1']) {
     include_once 'cfg/custom1.php';
@@ -270,16 +321,15 @@
   if (!$bbn->is_cli) {
     if ($cfg_files['session']) {
       $default = file_get_contents('cfg/session.json');
-      if ($default) {
-        $default = json_decode($default, true);
-        if (is_array($default)) {
-          $defaults = array_merge($bbn->vars['default_session'], $default);
-        }
+      if ($default && ($default = json_decode($default, true))) {
+        $defaults = array_merge($bbn->vars['default_session'], $default);
       }
     }
-    else {
+
+    if (empty($defaults)) {
       $defaults = $bbn->vars['default_session'];
     }
+
     if (defined('BBN_USER') && BBN_USER) {
       $session_cls = defined('BBN_SESSION') && is_string(BBN_SESSION) && class_exists(BBN_SESSION) ?
         BBN_SESSION : '\\bbn\\user\\session';
@@ -306,6 +356,7 @@
           BBN_PERMISSIONS : '\\bbn\\user\\permissions';
         $bbn->mvc->add_inc('perm', new $perm_cls());
       }
+
       if (defined('BBN_HISTORY')) {
         \bbn\appui\history::init(
           $bbn->db,
@@ -314,11 +365,13 @@
         );
       }
     }
+
     if ($cfg_files['custom2']) {
       include_once 'cfg/custom2.php';
     }
   }
   elseif (defined('BBN_USER') && BBN_USER && defined('BBN_EXTERNAL_USER_ID')) {
+    // Setting up user
     $user_cls = is_string(BBN_USER) && class_exists(BBN_USER) ?
       BBN_USER : '\\bbn\\user';
     $bbn->mvc->add_inc(
@@ -328,6 +381,7 @@
         ['id' => BBN_EXTERNAL_USER_ID]
       )
     );
+    // Setting up history
     if (defined('BBN_HISTORY')) {
       \bbn\appui\history::init(
         $bbn->db,
@@ -336,39 +390,65 @@
       );
     }
   }
+
   if ($timings) {
     \bbn\x::log(['All set up', $chrono->measure()], 'timings');
   }
 
+  /** @var bool Becomes true if profiling is activated */
+  $profiler = false;
+  // Adding profiling if true or is current url or starts like url if finishes with a *
+  if (BBN_IS_DEV
+      && defined('BBN_PROFILING') && (
+        (BBN_PROFILING === true)
+        || (is_string(BBN_PROFILING) 
+          && (($bbn->mvc->get_url() === BBN_PROFILING)
+          || ((substr(BBN_PROFILING, -1) === '*')
+            && (strpos($bbn->mvc->get_url(), substr(BBN_PROFILING, 0, -1)) === 0)
+          )
+        )
+      )
+    )
+  ) {
+    $profiler = new \bbn\appui\profiler($bbn->db);
+    $profiler->start();
+  }
+
+  // Routing
   if ($bbn->mvc->check()) {
     if ($timings) {
       \bbn\x::log(['checked', $chrono->measure()], 'timings');
     }
-    /*
-    die(var_dump(
-      $bbn->mvc->get_url(),
-      $bbn->mvc->get_file(),
-      $bbn->mvc->get_files(),
-      $bbn->mvc->inc->user->check(),
-      $bbn->mvc->_controller
-    ));
-    */
+
+    // Executing
     $bbn->mvc->process();
+
     if ($timings) {
       \bbn\x::log(['processed', $chrono->measure()], 'timings');
     }
+
     if ($bbn->is_cli) {
       //file_put_contents(BBN_DATA_PATH.'cli.txt', "0");
     }
+    /** @todo Why custom3 not in cli?? */
     elseif ($cfg_files['custom3']) {
       include_once 'cfg/custom3.php';
     }
+
     if ($timings) {
       \bbn\x::log(['custom 3', $chrono->measure()], 'timings');
     }
   }
+
+  if ($profiler) {
+    $profiler->finish($bbn->mvc);
+  }
+
+  // Outputs the result
   $bbn->mvc->output();
+
   if ($timings) {
     \bbn\x::log(['output', $chrono->measure()], 'timings');
   }
+
 })($installer ?? null);
