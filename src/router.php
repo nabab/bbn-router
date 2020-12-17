@@ -63,9 +63,19 @@ and put it in the public root of your web server.
   foreach ($cfgs as $c) {
     // Looking for the corresponding hostname and app path
     if (isset($c['hostname']) && ($c['hostname'] === $hostname) && ($c['app_path'] === $app_path)) {
-      /** @var array The current configuration */
-      $cfg = $c;
-      break;
+      if (!empty($c['force_server_name'])) {
+        if (!empty($c['server_name'])
+            && ($c['server_name'] === $_SERVER['SERVER_NAME'])
+        ) {
+          $cfg = $c;
+          break;
+        }
+      }
+      else {
+        /** @var array The current configuration */
+        $cfg = $c;
+        break;
+      }
     }
   }
 
@@ -102,6 +112,9 @@ and put it in the public root of your web server.
 
   // Each value in thew array will define a constant with prefix BBN_
   foreach ($cfg as $n => $c) {
+    if ($n === 'spec') {
+      continue;
+    }
     if ($n === 'env') {
       define('BBN_IS_DEV', $c === 'dev');
       define('BBN_IS_TEST', $c === 'test');
@@ -146,6 +159,12 @@ and put it in the public root of your web server.
     define('BBN_APP_PREFIX', BBN_APP_NAME);
   }
 
+  if (isset($cfg['spec'])) {
+    foreach ($cfg['spec'] as $key => $val) {
+      define(strtoupper(BBN_APP_PREFIX).'_'.strtoupper($key), $val);
+    }
+  }
+
   // Checking all the necessary constants are defined... or die
   if (!defined('BBN_LIB_PATH')
       || !defined('BBN_APP_PATH')
@@ -188,7 +207,7 @@ and put it in the public root of your web server.
   date_default_timezone_set(BBN_TIMEZONE);
 
   ini_set('error_log', BBN_DATA_PATH . 'logs/_php_error.log');
-  set_error_handler('\\bbn\\x::log_error', E_ALL);
+  //set_error_handler('\\bbn\\x::log_error', E_ALL);
 
   /** @var bbn\cache The cache engine */
   $cache = \bbn\cache::get_engine('files');
