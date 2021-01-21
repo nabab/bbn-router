@@ -324,7 +324,7 @@ and put it in the public root of your web server.
 
   // Setting up options
   if (defined('BBN_OPTIONS') && BBN_OPTIONS) {
-    $options_cls = is_string(BBN_OPTIONS) && class_exists(BBN_OPTIONS) ? BBN_OPTIONS : '\\bbn\\appui\\options';
+    $options_cls = is_string(BBN_OPTIONS) && class_exists(BBN_OPTIONS) ? BBN_OPTIONS : '\\bbn\\appui\\option';
     $bbn->mvc->add_inc(
       'options',
       new $options_cls($bbn->db)
@@ -373,7 +373,7 @@ and put it in the public root of your web server.
       if (defined('BBN_PERMISSIONS') && BBN_PERMISSIONS) {
         $perm_cls = is_string(BBN_PERMISSIONS) && class_exists(BBN_PERMISSIONS) ?
           BBN_PERMISSIONS : '\\bbn\\user\\permissions';
-        $bbn->mvc->add_inc('perm', new $perm_cls());
+        $bbn->mvc->add_inc('perm', new $perm_cls($routes['root']));
       }
 
       if (defined('BBN_HISTORY')) {
