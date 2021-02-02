@@ -1,5 +1,4 @@
 <?php
-
 /**
  * This file deals with all the requests (users and API calls).
  *
@@ -196,7 +195,7 @@ and put it in the public root of your web server.
   $timings = !!(defined('BBN_TIMINGS') && BBN_TIMINGS);
   // If timing
   if ($timings) {
-    $chrono = new \bbn\util\timer();
+    $chrono = new \bbn\Util\Timer();
     $chrono->start();
   }
 
@@ -207,10 +206,10 @@ and put it in the public root of your web server.
   date_default_timezone_set(BBN_TIMEZONE);
 
   ini_set('error_log', BBN_DATA_PATH . 'logs/_php_error.log');
-  //set_error_handler('\\bbn\\x::log_error', E_ALL);
+  //set_error_handler('\\bbn\\X::log_error', E_ALL);
 
-  /** @var bbn\cache The cache engine */
-  $cache = \bbn\cache::get_engine('files');
+  /** @var bbn\Cache The cache engine */
+  $cache = \bbn\Cache::getEngine('files');
   
   // Setting the custom files presence in cache
   if ($cache_cfg = $cache->get('cfg_files')) {
@@ -228,7 +227,7 @@ and put it in the public root of your web server.
   }
 
   if ($timings) {
-    \bbn\x::log(['config file', $chrono->measure()], 'timings');
+    \bbn\X::log(['config file', $chrono->measure()], 'timings');
   }
 
   /** @todo Language detection has to be redone */
@@ -277,7 +276,7 @@ and put it in the public root of your web server.
   ];
 
   if (BBN_IS_DEV) {
-    bbn\mvc::debug();
+    bbn\Mvc::debug();
   }
 
   // Loading routes configuration
@@ -302,34 +301,35 @@ and put it in the public root of your web server.
   }
   else {
     // Database
-    $bbn->db = new bbn\db();
+    $bbn->db = new bbn\Db();
     $bbn->dbs = [&$bbn->db];
   }
 
   if ($timings) {
-    \bbn\x::log(['DB', $chrono->measure()], 'timings');
+    \bbn\X::log(['DB', $chrono->measure()], 'timings');
   }
 
-  $bbn->mvc = new bbn\mvc($bbn->db, $routes);
+  $bbn->mvc = new bbn\Mvc($bbn->db, $routes);
 
   if ($timings) {
-    \bbn\x::log(['MVC', $chrono->measure()], 'timings');
+    \bbn\X::log(['MVC', $chrono->measure()], 'timings');
   }
 
   /** @todo Make it depend of a constant from settings */
-  bbn\mvc::set_db_in_controller(true);
+  bbn\Mvc::setDbInController(true);
 
   // The current PID, is it unique?
   define('BBN_PID', getmypid());
 
   // Setting up options
   if (defined('BBN_OPTIONS') && BBN_OPTIONS) {
-    $options_cls = is_string(BBN_OPTIONS) && class_exists(BBN_OPTIONS) ? BBN_OPTIONS : '\\bbn\\appui\\option';
-    $bbn->mvc->add_inc(
+    $options_cls = is_string(BBN_OPTIONS) && class_exists(BBN_OPTIONS) ? BBN_OPTIONS : '\\bbn\\Appui\\Option';
+    $bbn->mvc->addInc(
       'options',
       new $options_cls($bbn->db)
     );
   }
+
 
   // Loading users scripts before session is set (but it is started)
   if ($cfg_files['custom1']) {
@@ -351,36 +351,36 @@ and put it in the public root of your web server.
 
     if (defined('BBN_USER') && BBN_USER) {
       $session_cls = defined('BBN_SESSION') && is_string(BBN_SESSION) && class_exists(BBN_SESSION) ?
-        BBN_SESSION : '\\bbn\\user\\session';
+        BBN_SESSION : '\\bbn\\User\\Session';
       $bbn->session = new $session_cls($defaults);
-      $bbn->mvc->add_inc('session', $bbn->session);
+      $bbn->mvc->addInc('session', $bbn->session);
       $user_cls = is_string(BBN_USER) && class_exists(BBN_USER) ?
-        BBN_USER : '\\bbn\\user';
-      $bbn->mvc->add_inc(
+        BBN_USER : '\\bbn\\User';
+      $bbn->mvc->addInc(
         'user',
         new $user_cls(
           $bbn->db,
-          $bbn->mvc->get_post()
+          $bbn->mvc->getPost()
         )
       );
 
       if (defined('BBN_PREFERENCES') && BBN_PREFERENCES) {
         $pref_cls = is_string(BBN_PREFERENCES) && class_exists(BBN_PREFERENCES) ?
-          BBN_PREFERENCES : '\\bbn\\user\\preferences';
-        $bbn->mvc->add_inc('pref', new $pref_cls($bbn->db));
+          BBN_PREFERENCES : '\\bbn\\User\\Preferences';
+        $bbn->mvc->addInc('pref', new $pref_cls($bbn->db));
       }
 
       if (defined('BBN_PERMISSIONS') && BBN_PERMISSIONS) {
         $perm_cls = is_string(BBN_PERMISSIONS) && class_exists(BBN_PERMISSIONS) ?
-          BBN_PERMISSIONS : '\\bbn\\user\\permissions';
-        $bbn->mvc->add_inc('perm', new $perm_cls($routes['root']));
+          BBN_PERMISSIONS : '\\bbn\\User\\Permissions';
+        $bbn->mvc->addInc('perm', new $perm_cls($routes['root']));
       }
 
       if (defined('BBN_HISTORY')) {
-        \bbn\appui\history::init(
+        \bbn\Appui\History::init(
           $bbn->db,
           // User adhérent
-          ['user' => $bbn->mvc->inc->user->get_id()]
+          ['user' => $bbn->mvc->inc->user->getId()]
         );
       }
     }
@@ -392,8 +392,8 @@ and put it in the public root of your web server.
   elseif (defined('BBN_USER') && BBN_USER && defined('BBN_EXTERNAL_USER_ID')) {
     // Setting up user
     $user_cls = is_string(BBN_USER) && class_exists(BBN_USER) ?
-      BBN_USER : '\\bbn\\user';
-    $bbn->mvc->add_inc(
+      BBN_USER : '\\bbn\\User';
+    $bbn->mvc->addInc(
       'user',
       new $user_cls(
         $bbn->db,
@@ -402,7 +402,7 @@ and put it in the public root of your web server.
     );
     // Setting up history
     if (defined('BBN_HISTORY')) {
-      \bbn\appui\history::init(
+      \bbn\Appui\History::init(
         $bbn->db,
         // User adhérent
         ['user' => BBN_EXTERNAL_USER_ID]
@@ -411,7 +411,7 @@ and put it in the public root of your web server.
   }
 
   if ($timings) {
-    \bbn\x::log(['All set up', $chrono->measure()], 'timings');
+    \bbn\X::log(['All set up', $chrono->measure()], 'timings');
   }
 
   /** @var bool Becomes true if profiling is activated */
@@ -421,29 +421,29 @@ and put it in the public root of your web server.
       && defined('BBN_PROFILING') && (
         (BBN_PROFILING === true)
         || (is_string(BBN_PROFILING) 
-          && (($bbn->mvc->get_url() === BBN_PROFILING)
+          && (($bbn->mvc->getUrl() === BBN_PROFILING)
           || ((substr(BBN_PROFILING, -1) === '*')
-            && (strpos($bbn->mvc->get_url(), substr(BBN_PROFILING, 0, -1)) === 0)
+            && (strpos($bbn->mvc->getUrl(), substr(BBN_PROFILING, 0, -1)) === 0)
           )
         )
       )
     )
   ) {
-    $profiler = new \bbn\appui\profiler($bbn->db);
+    $profiler = new \bbn\Appui\Profiler($bbn->db);
     $profiler->start();
   }
 
   // Routing
   if ($bbn->mvc->check()) {
     if ($timings) {
-      \bbn\x::log(['checked', $chrono->measure()], 'timings');
+      \bbn\X::log(['checked', $chrono->measure()], 'timings');
     }
 
     // Executing
     $bbn->mvc->process();
 
     if ($timings) {
-      \bbn\x::log(['processed', $chrono->measure()], 'timings');
+      \bbn\X::log(['processed', $chrono->measure()], 'timings');
     }
 
     if ($bbn->is_cli) {
@@ -455,7 +455,7 @@ and put it in the public root of your web server.
     }
 
     if ($timings) {
-      \bbn\x::log(['custom 3', $chrono->measure()], 'timings');
+      \bbn\X::log(['custom 3', $chrono->measure()], 'timings');
     }
   }
 
@@ -467,7 +467,7 @@ and put it in the public root of your web server.
   $bbn->mvc->output();
 
   if ($timings) {
-    \bbn\x::log(['output', $chrono->measure()], 'timings');
+    \bbn\X::log(['output', $chrono->measure()], 'timings');
   }
 
 })($installer ?? null);
