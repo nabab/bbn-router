@@ -15,5 +15,10 @@
   "require": {
     "php": ">=7.3",
     "bbn/bbn": "dev-master"
+  },
+  "scripts" : {
+    "post-autoload-dump": [
+      "ln -s vendor/bbn/bbn-router/src/router.php src/router.php"
+    ]
   }
 }
