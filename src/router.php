@@ -230,43 +230,6 @@ and put it in the public root of your web server.
     \bbn\X::log(['config file', $chrono->measure()], 'timings');
   }
 
-  /** @todo Language detection has to be redone */
-  if (defined('BBN_LANG') && !defined('BBN_LOCALE')) {
-    $locales = [
-      BBN_LANG . '_' . strtoupper(BBN_LANG) . '.utf8',
-      BBN_LANG . '-' . strtoupper(BBN_LANG) . '.utf8',
-      BBN_LANG . '_' . strtoupper(BBN_LANG),
-      BBN_LANG . '-' . strtoupper(BBN_LANG),
-      BBN_LANG,
-    ];
-    foreach ($locales as $l) {
-      if (setlocale(LC_TIME, $l)) {
-        define('BBN_LOCALE', $l);
-        break;
-      }
-    }
-
-    if (!defined('BBN_LOCALE')) {
-      $locales = [
-        'en_EN.utf8',
-        'en-EN.utf8',
-        'en_EN',
-        'en-EN',
-        'en_US.utf8',
-        'en-US.utf8',
-        'en_US',
-        'en-US',
-        'en',
-      ];
-      foreach ($locales as $l) {
-        if (setlocale(LC_TIME, $l)) {
-          define('BBN_LOCALE', $l);
-          break;
-        }
-      }
-    }
-  }
-
   /** @todo default session info, I don't see the point */
   $bbn->vars = [
     'default_session' => [
