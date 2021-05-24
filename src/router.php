@@ -195,7 +195,7 @@ and put it in the public root of your web server.
   $timings = !!(defined('BBN_TIMINGS') && BBN_TIMINGS);
   // If timing
   if ($timings) {
-    $chrono = new \bbn\Util\Timer();
+    $chrono = new bbn\Util\Timer();
     $chrono->start();
   }
 
@@ -209,7 +209,7 @@ and put it in the public root of your web server.
   //set_error_handler('\\bbn\\X::log_error', E_ALL);
 
   /** @var bbn\Cache The cache engine */
-  $cache = \bbn\Cache::getEngine('files');
+  $cache = bbn\Cache::getEngine('files');
   
   // Setting the custom files presence in cache
   if ($cache_cfg = $cache->get('cfg_files')) {
@@ -227,7 +227,7 @@ and put it in the public root of your web server.
   }
 
   if ($timings) {
-    \bbn\X::log(['config file', $chrono->measure()], 'timings');
+    bbn\X::log(['config file', $chrono->measure()], 'timings');
   }
 
   /** @todo default session info, I don't see the point */
@@ -269,13 +269,13 @@ and put it in the public root of your web server.
   }
 
   if ($timings) {
-    \bbn\X::log(['DB', $chrono->measure()], 'timings');
+    bbn\X::log(['DB', $chrono->measure()], 'timings');
   }
 
   $bbn->mvc = new bbn\Mvc($bbn->db, $routes);
 
   if ($timings) {
-    \bbn\X::log(['MVC', $chrono->measure()], 'timings');
+    bbn\X::log(['MVC', $chrono->measure()], 'timings');
   }
 
   /** @todo Make it depend of a constant from settings */
@@ -340,7 +340,7 @@ and put it in the public root of your web server.
       }
 
       if (defined('BBN_HISTORY')) {
-        \bbn\Appui\History::init(
+        bbn\Appui\History::init(
           $bbn->db,
           // User adhérent
           ['user' => $bbn->mvc->inc->user->getId()]
@@ -365,7 +365,7 @@ and put it in the public root of your web server.
     );
     // Setting up history
     if (defined('BBN_HISTORY')) {
-      \bbn\Appui\History::init(
+      bbn\Appui\History::init(
         $bbn->db,
         // User adhérent
         ['user' => BBN_EXTERNAL_USER_ID]
@@ -374,7 +374,7 @@ and put it in the public root of your web server.
   }
 
   if ($timings) {
-    \bbn\X::log(['All set up', $chrono->measure()], 'timings');
+    bbn\X::log(['All set up', $chrono->measure()], 'timings');
   }
 
   /** @var bool Becomes true if profiling is activated */
@@ -392,21 +392,21 @@ and put it in the public root of your web server.
       )
     )
   ) {
-    $profiler = new \bbn\Appui\Profiler($bbn->db);
+    $profiler = new bbn\Appui\Profiler($bbn->db);
     $profiler->start();
   }
 
   // Routing
   if ($bbn->mvc->check()) {
     if ($timings) {
-      \bbn\X::log(['checked', $chrono->measure()], 'timings');
+      bbn\X::log(['checked', $chrono->measure()], 'timings');
     }
 
     // Executing
     $bbn->mvc->process();
 
     if ($timings) {
-      \bbn\X::log(['processed', $chrono->measure()], 'timings');
+      bbn\X::log(['processed', $chrono->measure()], 'timings');
     }
 
     if ($bbn->is_cli) {
@@ -418,7 +418,7 @@ and put it in the public root of your web server.
     }
 
     if ($timings) {
-      \bbn\X::log(['custom 3', $chrono->measure()], 'timings');
+      bbn\X::log(['custom 3', $chrono->measure()], 'timings');
     }
   }
 
@@ -430,7 +430,7 @@ and put it in the public root of your web server.
   $bbn->mvc->output();
 
   if ($timings) {
-    \bbn\X::log(['output', $chrono->measure()], 'timings');
+    bbn\X::log(['output', $chrono->measure()], 'timings');
   }
 
 })($installer ?? null);
