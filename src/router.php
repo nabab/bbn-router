@@ -339,7 +339,7 @@ and put it in the public root of your web server.
         $bbn->mvc->addInc('perm', new $perm_cls($routes['root']));
       }
 
-      if (defined('BBN_HISTORY')) {
+      if (defined('BBN_HISTORY') && BBN_HISTORY) {
         bbn\Appui\History::init(
           $bbn->db,
           // User adhérent
