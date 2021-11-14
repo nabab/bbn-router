@@ -136,7 +136,7 @@ and put it in the public root of your web server.
     define('BBN_PORT', BBN_IS_SSL ? 443 : 80);
   }
 
-  /** @var string The base URL of the application */
+  /** The base URL of the application */
   $url = 'http'
       .(BBN_IS_SSL ? 's' : '')
       .'://' . BBN_SERVER_NAME
@@ -336,10 +336,10 @@ and put it in the public root of your web server.
       if (defined('BBN_PERMISSIONS') && BBN_PERMISSIONS) {
         $perm_cls = is_string(BBN_PERMISSIONS) && class_exists(BBN_PERMISSIONS) ?
           BBN_PERMISSIONS : '\\bbn\\User\\Permissions';
-        $bbn->mvc->addInc('perm', new $perm_cls($routes['root']));
+        $bbn->mvc->addInc('perm', new $perm_cls($routes));
       }
 
-      if (defined('BBN_HISTORY')) {
+      if (defined('BBN_HISTORY') && BBN_HISTORY) {
         bbn\Appui\History::init(
           $bbn->db,
           // User adhérent
