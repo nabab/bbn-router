@@ -314,7 +314,8 @@ and put it in the public root of your web server.
 
     if (defined('BBN_USER') && BBN_USER) {
       $session_cls = defined('BBN_SESSION') && is_string(BBN_SESSION) && class_exists(BBN_SESSION) ?
-        BBN_SESSION : '\\bbn\\User\\Session';
+	      BBN_SESSION : '\\bbn\\User\\Session';
+      session_save_path(BBN_DATA_PATH . 'sessions');
       $bbn->session = new $session_cls($defaults);
       $bbn->mvc->addInc('session', $bbn->session);
       $user_cls = is_string(BBN_USER) && class_exists(BBN_USER) ?
