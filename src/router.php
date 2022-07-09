@@ -20,21 +20,26 @@
  * @see        mvc
  */
 (function ($installer) {
-  $errorFn = function($msg) {
-    die(sprintf('
-The following error occurred: %s.
-
-In order to repair or redo your installation you need to download the following script:
-<a href="https://app-ui.com/download/bbn-install.php">bbn-install.php</a>
-and put it in the public root of your web server.
-', $msg));
-  };
 
   /** @todo Not sure why... */
   @ini_set('zlib.output_compression', 'off');
   /** The only/main object */
   $bbn = new stdClass();
   $bbn->is_cli = php_sapi_name() === 'cli';
+  $errorFn = function($msg) use (&$bbn){
+    $st = sprintf('
+The following error occurred: %s.
+
+In order to repair or redo your installation you need to download the following script:
+<a href="https://app-ui.com/download/bbn-install.php">bbn-install.php</a>
+and put it in the public root of your web server.
+', $msg);
+  if ($bbn->is_cli) {
+    die(nl2br($st));
+  }
+
+  die($st);
+  };
   /** @var string Current directory which MUST be the root of the project where the symlink to rhis file is located */
   $app_path = dirname(getcwd()).'/';
   // Parsing YAML environment's configuration
