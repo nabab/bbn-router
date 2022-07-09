@@ -34,11 +34,11 @@ In order to repair or redo your installation you need to download the following 
 <a href="https://app-ui.com/download/bbn-install.php">bbn-install.php</a>
 and put it in the public root of your web server.
 ', $msg);
-  if ($bbn->is_cli) {
-    die(nl2br($st));
-  }
+    if ($bbn->is_cli) {
+      die($st);
+    }
 
-  die($st);
+    die(nl2br($st));
   };
   /** @var string Current directory which MUST be the root of the project where the symlink to rhis file is located */
   $app_path = dirname(getcwd()).'/';
