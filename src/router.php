@@ -20,13 +20,16 @@
  * @see        mvc
  */
 (function ($installer) {
-  $message = '
+  $errorFn = function($msg) {
+    die(sprintf('
 The following error occurred: %s.
 
 In order to repair or redo your installation you need to download the following script:
 <a href="https://app-ui.com/download/bbn-install.php">bbn-install.php</a>
 and put it in the public root of your web server.
-';
+', $msg));
+  };
+
   /** @todo Not sure why... */
   @ini_set('zlib.output_compression', 'off');
   /** The only/main object */
@@ -53,7 +56,7 @@ and put it in the public root of your web server.
 
   // If no readable environment's configuration is found the app is not configured correctly
   if (empty($cfgs)) {
-    die("No environment files in $app_path    ".getcwd());
+    $errorFn("No environment files in $app_path    ".getcwd());
   }
 
   /** @var string The hostname */
@@ -80,7 +83,7 @@ and put it in the public root of your web server.
 
   // If no corresponding configuration is found the app is not configured correctly
   if (!isset($cfg)) {
-    die('No parameter corresponding to the current configuration.');
+    $errorFn('No parameter corresponding to the current configuration.');
   }
 
   // Redirection to https in case of SSL configuration
@@ -103,7 +106,7 @@ and put it in the public root of your web server.
 
   // If no general setting is found the app is not configured correctly
   if (!$tmp) {
-    die('impossible to read the configuration file (settings.json).');
+    $errorFn('impossible to read the configuration file (settings.json).');
   }
 
   // The cfg array becomes a mix of current environment and settings
@@ -174,7 +177,7 @@ and put it in the public root of your web server.
       || !defined('BBN_PUBLIC')
       || !defined('BBN_IS_DEV')
   ) {
-    die('Sorry check your config file or rebuild it, all the necessaries variable are not there.');
+    $errorFn('Sorry check your config file or rebuild it, all the necessaries variable are not there.');
   }
 
   // Classes autoloaders
