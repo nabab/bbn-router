@@ -32,7 +32,7 @@ The following error occurred: %s.
 
 In order to repair or redo your installation you need to download the following script:
 <a href="https://app-ui.com/download/bbn-install.php">bbn-install.php</a>
-and put it in the public root of your web server.
+and put it in the public root of your web server and call it from your browser.
 ', $msg);
     if ($bbn->is_cli) {
       die($st);
@@ -88,7 +88,17 @@ and put it in the public root of your web server.
 
   // If no corresponding configuration is found the app is not configured correctly
   if (!isset($cfg)) {
-    $errorFn('No parameter corresponding to the current configuration.');
+    $errorFn('No parameter corresponding to the current configuration.'.
+    PHP_EOL.PHP_EOL.
+    'Your hostname: '.$hostname.PHP_EOL.
+    'Your app path: '.$app_path.
+    PHP_EOL.PHP_EOL.print_r(array_map(function($a){
+      return [
+        'env_name' => $a['env_name'],
+        'hostname' => $a['hostname'],
+        'server_name' => $a['server_name']
+      ];
+    }, $cfgs), true));
   }
 
   // Redirection to https in case of SSL configuration
