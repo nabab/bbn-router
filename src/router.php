@@ -302,6 +302,8 @@ and put it in the public root of your web server and call it from your browser.
   // The current PID, is it unique?
   define('BBN_PID', getmypid());
 
+  define('BBN_REQUEST_PATH', substr($_SERVER['REQUEST_URI'], 1));
+
   // Setting up options
   if (defined('BBN_OPTIONS') && BBN_OPTIONS) {
     $options_cls = is_string(BBN_OPTIONS) && class_exists(BBN_OPTIONS) ? BBN_OPTIONS : '\\bbn\\Appui\\Option';
@@ -318,7 +320,7 @@ and put it in the public root of your web server and call it from your browser.
   }
 
   // CLI
-  if (!$bbn->is_cli) {
+  if (!$bbn->is_cli/* && !$bbn->mvc->isStaticRoute(BBN_REQUEST_PATH)*/) {
     if ($cfg_files['session']) {
       $default = file_get_contents('cfg/session.json');
       if ($default && ($default = json_decode($default, true))) {
