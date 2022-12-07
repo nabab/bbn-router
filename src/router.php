@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file deals with all the requests (users and API calls).
  *
@@ -26,7 +27,7 @@
   /** The only/main object */
   $bbn = new stdClass();
   $bbn->is_cli = php_sapi_name() === 'cli';
-  $errorFn = function($msg) use (&$bbn){
+  $errorFn = function ($msg) use (&$bbn) {
     $st = sprintf('
 The following error occurred: %s.
 
@@ -41,19 +42,21 @@ and put it in the public root of your web server and call it from your browser.
     die(nl2br($st));
   };
   /** @var string Current directory which MUST be the root of the project where the symlink to rhis file is located */
-  $app_path = dirname(getcwd()).'/';
+  $app_path = dirname(getcwd()) . '/';
   // Parsing YAML environment's configuration
-  if (function_exists('yaml_parse')
-      && file_exists('cfg/environment.yml')
-      && ($tmp = file_get_contents('cfg/environment.yml'))
+  if (
+    function_exists('yaml_parse')
+    && file_exists('cfg/environment.yml')
+    && ($tmp = file_get_contents('cfg/environment.yml'))
   ) {
     /** @var array Environment's configuration */
     $cfgs = yaml_parse($tmp);
   }
   // Or parsing JSON environment's configuration
-  elseif (function_exists('json_decode')
-      && file_exists('cfg/environment.json')
-      && ($tmp = file_get_contents('cfg/environment.json'))
+  elseif (
+    function_exists('json_decode')
+    && file_exists('cfg/environment.json')
+    && ($tmp = file_get_contents('cfg/environment.json'))
   ) {
     /** @var array ENvironment's configuration */
     $cfgs = json_decode($tmp, true);
@@ -61,7 +64,7 @@ and put it in the public root of your web server and call it from your browser.
 
   // If no readable environment's configuration is found the app is not configured correctly
   if (empty($cfgs)) {
-    $errorFn("No environment files in $app_path    ".getcwd());
+    $errorFn("No environment files in $app_path    " . getcwd());
   }
 
   /** @var string The hostname */
@@ -71,14 +74,14 @@ and put it in the public root of your web server and call it from your browser.
     // Looking for the corresponding hostname and app path
     if (isset($c['hostname']) && ($c['hostname'] === $hostname) && ($c['app_path'] === $app_path)) {
       if (!empty($c['force_server_name'])) {
-        if (!empty($c['server_name'])
-            && ($c['server_name'] === $_SERVER['SERVER_NAME'])
+        if (
+          !empty($c['server_name'])
+          && ($c['server_name'] === $_SERVER['SERVER_NAME'])
         ) {
           $cfg = $c;
           break;
         }
-      }
-      else {
+      } else {
         /** @var array The current configuration */
         $cfg = $c;
         break;
@@ -88,25 +91,26 @@ and put it in the public root of your web server and call it from your browser.
 
   // If no corresponding configuration is found the app is not configured correctly
   if (!isset($cfg)) {
-    $errorFn('No parameter corresponding to the current configuration.'.
-    PHP_EOL.PHP_EOL.
-    'Your hostname: '.$hostname.PHP_EOL.
-    'Your app path: '.$app_path.
-    PHP_EOL.PHP_EOL.print_r(array_map(function($a){
-      return [
-        'env_name' => $a['env_name'],
-        'hostname' => $a['hostname'],
-        'server_name' => $a['server_name']
-      ];
-    }, $cfgs), true));
+    $errorFn('No parameter corresponding to the current configuration.' .
+      PHP_EOL . PHP_EOL .
+      'Your hostname: ' . $hostname . PHP_EOL .
+      'Your app path: ' . $app_path .
+      PHP_EOL . PHP_EOL . print_r(array_map(function ($a) {
+        return [
+          'env_name' => $a['env_name'],
+          'hostname' => $a['hostname'],
+          'server_name' => $a['server_name']
+        ];
+      }, $cfgs), true));
   }
 
   // Redirection to https in case of SSL configuration
-  if (!$bbn->is_cli
-      && !empty($cfg['is_ssl'])
-      && ($_SERVER['REQUEST_SCHEME'] === 'http')
+  if (
+    !$bbn->is_cli
+    && !empty($cfg['is_ssl'])
+    && ($_SERVER['REQUEST_SCHEME'] === 'http')
   ) {
-    header('Location: https://'.$cfg['server_name'].$_SERVER['REQUEST_URI']);
+    header('Location: https://' . $cfg['server_name'] . $_SERVER['REQUEST_URI']);
     exit;
   }
 
@@ -114,8 +118,7 @@ and put it in the public root of your web server and call it from your browser.
   $tmp = false;
   if (function_exists('yaml_parse') && file_exists('cfg/settings.yml') && ($tmp = file_get_contents('cfg/settings.yml'))) {
     $tmp = yaml_parse($tmp);
-  }
-  elseif (function_exists('json_decode') && file_exists('cfg/settings.json') && ($tmp = file_get_contents('cfg/settings.json'))) {
+  } elseif (function_exists('json_decode') && file_exists('cfg/settings.json') && ($tmp = file_get_contents('cfg/settings.json'))) {
     $tmp = json_decode($tmp, true);
   }
 
@@ -156,10 +159,10 @@ and put it in the public root of your web server and call it from your browser.
 
   /** The base URL of the application */
   $url = 'http'
-      .(BBN_IS_SSL ? 's' : '')
-      .'://' . BBN_SERVER_NAME
-      .(BBN_PORT && !in_array(BBN_PORT, [80, 443]) ? ':'.BBN_PORT : '')
-      .(BBN_CUR_PATH ? BBN_CUR_PATH : '');
+    . (BBN_IS_SSL ? 's' : '')
+    . '://' . BBN_SERVER_NAME
+    . (BBN_PORT && !in_array(BBN_PORT, [80, 443]) ? ':' . BBN_PORT : '')
+    . (BBN_CUR_PATH ? BBN_CUR_PATH : '');
   if (substr($url, -1) !== '/') {
     $url .= '/';
   }
@@ -178,19 +181,20 @@ and put it in the public root of your web server and call it from your browser.
 
   if (isset($cfg['spec'])) {
     foreach ($cfg['spec'] as $key => $val) {
-      define(strtoupper(BBN_APP_PREFIX).'_'.strtoupper($key), $val);
+      define(strtoupper(BBN_APP_PREFIX) . '_' . strtoupper($key), $val);
     }
   }
 
   // Checking all the necessary constants are defined... or die
-  if (!defined('BBN_LIB_PATH')
-      || !defined('BBN_APP_PATH')
-      || !defined('BBN_DATA_PATH')
-      || !defined('BBN_APP_NAME')
-      || !defined('BBN_TIMEZONE')
-      || !defined('BBN_SESS_LIFETIME')
-      || !defined('BBN_PUBLIC')
-      || !defined('BBN_IS_DEV')
+  if (
+    !defined('BBN_LIB_PATH')
+    || !defined('BBN_APP_PATH')
+    || !defined('BBN_DATA_PATH')
+    || !defined('BBN_APP_NAME')
+    || !defined('BBN_TIMEZONE')
+    || !defined('BBN_SESS_LIFETIME')
+    || !defined('BBN_PUBLIC')
+    || !defined('BBN_IS_DEV')
   ) {
     $errorFn('Sorry check your config file or rebuild it, all the necessaries variable are not there.');
   }
@@ -228,12 +232,11 @@ and put it in the public root of your web server and call it from your browser.
 
   /** @var bbn\Cache The cache engine */
   $cache = bbn\Cache::getEngine('files');
-  
+
   // Setting the custom files presence in cache
   if ($cache_cfg = $cache->get('cfg_files')) {
     $cfg_files = $cache_cfg;
-  }
-  else {
+  } else {
     $cfg_files = [
       'custom1' => file_exists('cfg/custom1.php'),
       'custom2' => file_exists('cfg/custom2.php'),
@@ -263,11 +266,9 @@ and put it in the public root of your web server and call it from your browser.
   // Loading routes configuration
   if (function_exists('yaml_parse') && file_exists('cfg/routes.yml') && ($tmp = file_get_contents('cfg/routes.yml'))) {
     $routes = yaml_parse($tmp);
-  }
-  elseif (function_exists('json_decode') && file_exists('cfg/routes.json') && ($tmp = file_get_contents('cfg/routes.json'))) {
+  } elseif (function_exists('json_decode') && file_exists('cfg/routes.json') && ($tmp = file_get_contents('cfg/routes.json'))) {
     $routes = json_decode($tmp, true);
-  }
-  else {
+  } else {
     $routes = [];
   }
 
@@ -279,8 +280,7 @@ and put it in the public root of your web server and call it from your browser.
     // No database
     $bbn->db = false;
     $bbn->dbs = [];
-  }
-  else {
+  } else {
     // Database
     $bbn->db = new bbn\Db();
     $bbn->dbs = [&$bbn->db];
@@ -302,7 +302,7 @@ and put it in the public root of your web server and call it from your browser.
   // The current PID, is it unique?
   define('BBN_PID', getmypid());
 
-  define('BBN_REQUEST_PATH', substr($_SERVER['REQUEST_URI'], 1));
+  define('BBN_REQUEST_PATH', $bbn->mvc->getRequest());
 
   // Setting up options
   if (defined('BBN_OPTIONS') && BBN_OPTIONS) {
@@ -334,7 +334,7 @@ and put it in the public root of your web server and call it from your browser.
 
     if (defined('BBN_USER') && BBN_USER) {
       $session_cls = defined('BBN_SESSION') && is_string(BBN_SESSION) && class_exists(BBN_SESSION) ?
-	      BBN_SESSION : '\\bbn\\User\\Session';
+        BBN_SESSION : '\\bbn\\User\\Session';
       session_save_path(BBN_DATA_PATH . 'sessions');
       $bbn->session = new $session_cls($defaults);
       $bbn->mvc->addInc('session', $bbn->session);
@@ -372,8 +372,7 @@ and put it in the public root of your web server and call it from your browser.
     if ($cfg_files['custom2']) {
       include_once 'cfg/custom2.php';
     }
-  }
-  elseif (defined('BBN_USER') && BBN_USER && defined('BBN_EXTERNAL_USER_ID')) {
+  } elseif (defined('BBN_USER') && BBN_USER && defined('BBN_EXTERNAL_USER_ID')) {
     // Setting up user
     $user_cls = is_string(BBN_USER) && class_exists(BBN_USER) ?
       BBN_USER : '\\bbn\\User';
@@ -401,11 +400,12 @@ and put it in the public root of your web server and call it from your browser.
   /** @var bool Becomes true if profiling is activated */
   $profiler = false;
   // Adding profiling if true or is current url or starts like url if finishes with a *
-  if (BBN_IS_DEV
-      && defined('BBN_PROFILING') && (
-        (BBN_PROFILING === true)
-        || (is_string(BBN_PROFILING) 
-          && (($bbn->mvc->getUrl() === BBN_PROFILING)
+  if (
+    BBN_IS_DEV
+    && defined('BBN_PROFILING') && (
+      (BBN_PROFILING === true)
+      || (is_string(BBN_PROFILING)
+        && (($bbn->mvc->getUrl() === BBN_PROFILING)
           || ((substr(BBN_PROFILING, -1) === '*')
             && (strpos($bbn->mvc->getUrl(), substr(BBN_PROFILING, 0, -1)) === 0)
           )
@@ -453,5 +453,4 @@ and put it in the public root of your web server and call it from your browser.
   if ($timings) {
     bbn\X::log(['output', $chrono->measure()], 'timings');
   }
-
 })($installer ?? null);
