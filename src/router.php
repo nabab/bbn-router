@@ -397,7 +397,7 @@ and put it in the public root of your web server and call it from your browser.
     bbn\X::log(['All set up', $chrono->measure()], 'timings');
   }
 
-  /** @var bool Becomes true if profiling is activated */
+  /** @var bool Becomes profiler object if profiling is activated */
   $profiler = false;
   // Adding profiling if true or is current url or starts like url if finishes with a *
   if (
@@ -443,7 +443,7 @@ and put it in the public root of your web server and call it from your browser.
     }
   }
 
-  if ($profiler) {
+  if (isset($profiler)) {
     $profiler->finish($bbn->mvc);
   }
 
