@@ -443,7 +443,7 @@ and put it in the public root of your web server and call it from your browser.
     }
   }
 
-  if (isset($profiler)) {
+  if (!empty($profiler)) {
     $profiler->finish($bbn->mvc);
   }
 
