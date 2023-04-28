@@ -272,6 +272,8 @@ and put it in the public root of your web server and call it from your browser.
     $routes = [];
   }
 
+  define('BBN_DEFAULT_PATH', !empty($routes['default']) ? $routes['default'] : '');
+
   if ($installer && file_exists('cfg/init.php')) {
     include_once 'cfg/init.php';
   }
