@@ -41,94 +41,142 @@ and put it in the public root of your web server and call it from your browser.
 
     die(nl2br($st));
   };
-  /** @var string Current directory which MUST be the root of the project where the symlink to rhis file is located */
+
   $app_path = dirname(getcwd()) . '/';
-  // Parsing YAML environment's configuration
-  if (
-    function_exists('yaml_parse')
-    && file_exists('cfg/environment.yml')
-    && ($tmp = file_get_contents('cfg/environment.yml'))
-  ) {
-    /** @var array Environment's configuration */
-    $cfgs = yaml_parse($tmp);
-  }
-  // Or parsing JSON environment's configuration
-  elseif (
-    function_exists('json_decode')
-    && file_exists('cfg/environment.json')
-    && ($tmp = file_get_contents('cfg/environment.json'))
-  ) {
-    /** @var array ENvironment's configuration */
-    $cfgs = json_decode($tmp, true);
-  }
-
-  // If no readable environment's configuration is found the app is not configured correctly
-  if (empty($cfgs)) {
-    $errorFn("No environment files in $app_path    " . getcwd());
-  }
-
-  /** @var string The hostname */
   $hostname = gethostname();
-  // Checking each configuration
-  foreach ($cfgs as $c) {
-    // Looking for the corresponding hostname and app path
-    if (isset($c['hostname']) && ($c['hostname'] === $hostname) && ($c['app_path'] === $app_path)) {
-      if (!empty($c['force_server_name'])) {
-        if (
-          !empty($c['server_name'])
-          && ($c['server_name'] === $_SERVER['SERVER_NAME'])
-        ) {
-          $cfg = $c;
-          break;
-        }
-      } else {
-        /** @var array The current configuration */
-        $cfg = $c;
-        break;
+  if (is_file('.bbn')) {
+    $cFile = file_get_contents('.bbn');
+    try {
+      $cJson = json_decode($cFile, true);
+    }
+    catch (Exception $e) {
+      $cJson = [
+        'updating' => false,
+        'data' => [],
+        'time' => 0
+      ];
+    }
+
+    // Good environment
+    if (($cJson['data']['hostname'] === $hostname)
+        && ($cJson['data']['app_path'] === $app_path)) {
+          // Another process updates or time is not up
+      if ($cJson['updating'] || (time() - $cJson['time'] < 60)) {
+        $cfg = $cJson['data'];
       }
     }
   }
 
-  // If no corresponding configuration is found the app is not configured correctly
   if (!isset($cfg)) {
-    $errorFn('No parameter corresponding to the current configuration.' .
-      PHP_EOL . PHP_EOL .
-      'Your hostname: ' . $hostname . PHP_EOL .
-      'Your app path: ' . $app_path .
-      PHP_EOL . PHP_EOL . print_r(array_map(function ($a) {
-        return [
-          'env_name' => $a['env_name'],
-          'hostname' => $a['hostname'],
-          'server_name' => $a['server_name']
-        ];
-      }, $cfgs), true));
-  }
+    $cJson['updating'] = true;
+    file_put_contents('.bbn', json_encode($cJson, JSON_PRETTY_PRINT));
+    /** @var string Current directory which MUST be the root of the project where the symlink to rhis file is located */
+    // Parsing YAML environment's configuration
+    if (
+      function_exists('yaml_parse')
+      && file_exists('cfg/environment.yml')
+      && ($tmp = file_get_contents('cfg/environment.yml'))
+    ) {
+      /** @var array Environment's configuration */
+      $cfgs = yaml_parse($tmp);
+    }
+    // Or parsing JSON environment's configuration
+    elseif (
+      function_exists('json_decode')
+      && file_exists('cfg/environment.json')
+      && ($tmp = file_get_contents('cfg/environment.json'))
+    ) {
+      /** @var array ENvironment's configuration */
+      $cfgs = json_decode($tmp, true);
+    }
 
-  // Redirection to https in case of SSL configuration
-  if (
-    !$bbn->is_cli
-    && !empty($cfg['is_ssl'])
-    && ($_SERVER['REQUEST_SCHEME'] === 'http')
-  ) {
-    header('Location: https://' . $cfg['server_name'] . $_SERVER['REQUEST_URI']);
-    exit;
-  }
+    // If no readable environment's configuration is found the app is not configured correctly
+    if (empty($cfgs)) {
+      $errorFn("No environment files in $app_path    " . getcwd());
+    }
 
-  /** @var mixed Temporary variable for the general settings, which should be an array */
-  $tmp = false;
-  if (function_exists('yaml_parse') && file_exists('cfg/settings.yml') && ($tmp = file_get_contents('cfg/settings.yml'))) {
-    $tmp = yaml_parse($tmp);
-  } elseif (function_exists('json_decode') && file_exists('cfg/settings.json') && ($tmp = file_get_contents('cfg/settings.json'))) {
-    $tmp = json_decode($tmp, true);
-  }
+    /** @var string The hostname */
+    // Checking each configuration
+    foreach ($cfgs as $c) {
+      // Looking for the corresponding hostname and app path
+      if (isset($c['hostname']) && ($c['hostname'] === $hostname) && ($c['app_path'] === $app_path)) {
+        if (!empty($c['force_server_name'])) {
+          if (
+            !empty($c['server_name'])
+            && ($c['server_name'] === $_SERVER['SERVER_NAME'])
+          ) {
+            $cfg = $c;
+            break;
+          }
+        } else {
+          /** @var array The current configuration */
+          $cfg = $c;
+          break;
+        }
+      }
+    }
 
-  // If no general setting is found the app is not configured correctly
-  if (!$tmp) {
-    $errorFn('impossible to read the configuration file (settings.json).');
-  }
+    // If no corresponding configuration is found the app is not configured correctly
+    if (!isset($cfg)) {
+      $errorFn('No parameter corresponding to the current configuration.' .
+        PHP_EOL . PHP_EOL .
+        'Your hostname: ' . $hostname . PHP_EOL .
+        'Your app path: ' . $app_path .
+        PHP_EOL . PHP_EOL . print_r(array_map(function ($a) {
+          return [
+            'env_name' => $a['env_name'],
+            'hostname' => $a['hostname'],
+            'server_name' => $a['server_name']
+          ];
+        }, $cfgs), true));
+    }
 
-  // The cfg array becomes a mix of current environment and settings
-  $cfg = array_merge($cfg, $tmp);
+    // Redirection to https in case of SSL configuration
+    if (
+      !$bbn->is_cli
+      && !empty($cfg['is_ssl'])
+      && ($_SERVER['REQUEST_SCHEME'] === 'http')
+    ) {
+      header('Location: https://' . $cfg['server_name'] . $_SERVER['REQUEST_URI']);
+      exit;
+    }
+
+    /** @var mixed Temporary variable for the general settings, which should be an array */
+    $tmp = false;
+    if (function_exists('yaml_parse') && file_exists('cfg/settings.yml') && ($tmp = file_get_contents('cfg/settings.yml'))) {
+      $tmp = yaml_parse($tmp);
+    } elseif (function_exists('json_decode') && file_exists('cfg/settings.json') && ($tmp = file_get_contents('cfg/settings.json'))) {
+      $tmp = json_decode($tmp, true);
+    }
+
+    // If no general setting is found the app is not configured correctly
+    if (!$tmp) {
+      $errorFn('impossible to read the configuration file (settings.json).');
+    }
+
+    // The cfg array becomes a mix of current environment and settings
+    $cfg = array_merge($cfg, $tmp);
+    if (!isset($cfg['tmp_path'])) {
+      $home = getenv('HOME');
+      if (empty($home)) {
+        if (!empty($_SERVER['HOMEDRIVE']) && !empty($_SERVER['HOMEPATH'])) {
+          // home on windows
+          $home = $_SERVER['HOMEDRIVE'] . $_SERVER['HOMEPATH'];
+        }
+      }
+
+      if (!$home || !is_dir("$home/tmp") || !is_writable("$home/tmp")) {
+        $errorFn('Impossible to find the temporary path, please set it in the environment file as tmp_path.');
+      }
+      
+      $cfg['tmp_path'] = "$home/tmp/$cfg[app_name]";
+      if (!is_dir($cfg['tmp_path'])) {
+        mkdir($cfg['tmp_path'], 0775, true);
+      }
+    }
+
+    file_put_contents('.bbn', json_encode(['time' => time(), 'data' => $cfg], JSON_PRETTY_PRINT));
+  }
 
   // Each value in thew array will define a constant with prefix BBN_
   foreach ($cfg as $n => $c) {
