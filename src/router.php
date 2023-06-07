@@ -61,7 +61,7 @@ and put it in the public root of your web server and call it from your browser.
     if (($cJson['data']['hostname'] === $hostname)
         && ($cJson['data']['app_path'] === $app_path)) {
           // Another process updates or time is not up
-      if ($cJson['updating'] || (time() - $cJson['time'] < 60)) {
+      if (!empty($cJson['updating']) || (time() - $cJson['time'] < 60)) {
         $cfg = $cJson['data'];
       }
     }
