@@ -14,7 +14,7 @@
   ],
   "require": {
     "php": ">=7.3",
-    "bbn/bbn": "dev-master"
+    "bbn/bbn": "1.0.*"
   },
   "scripts" : {
     "post-autoload-dump": [
