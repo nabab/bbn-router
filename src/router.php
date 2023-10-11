@@ -97,7 +97,14 @@ and put it in the public root of your web server and call it from your browser.
 
     /** @var string The hostname */
     // Checking each configuration
+    $hasCluster = false;
+    $cluster = null;
     foreach ($cfgs as $c) {
+      if (!empty($c['cluster'])) {
+        $hasCluster = true;
+        $cluster = $c;
+      }
+
       // Looking for the corresponding hostname and app path
       if (isset($c['hostname']) && ($c['hostname'] === $hostname) && ($c['app_path'] === $app_path)) {
         if (!empty($c['force_server_name'])) {
@@ -114,6 +121,10 @@ and put it in the public root of your web server and call it from your browser.
           break;
         }
       }
+    }
+
+    if ($hasCluster && !isset($cfg)) {
+      $cfg = $cluster;
     }
 
     // If no corresponding configuration is found the app is not configured correctly
