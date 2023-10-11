@@ -194,6 +194,12 @@ and put it in the public root of your web server and call it from your browser.
     if ($n === 'spec') {
       continue;
     }
+
+    if ($cluster && ($n === 'hostname')) {
+      define('BBN_HOSTNAME', gethostname());
+      continue;
+    }
+
     if ($n === 'env') {
       define('BBN_IS_DEV', $c === 'dev');
       define('BBN_IS_TEST', $c === 'test');
