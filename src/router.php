@@ -195,7 +195,7 @@ and put it in the public root of your web server and call it from your browser.
       continue;
     }
 
-    if ($cluster && ($n === 'hostname')) {
+    if (!empty($cluster) && ($n === 'hostname')) {
       define('BBN_HOSTNAME', gethostname());
       continue;
     }
