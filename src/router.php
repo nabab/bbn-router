@@ -142,16 +142,6 @@ and put it in the public root of your web server and call it from your browser.
         }, $cfgs), true));
     }
 
-    // Redirection to https in case of SSL configuration
-    if (
-      !$bbn->is_cli
-      && !empty($cfg['is_ssl'])
-      && ($_SERVER['REQUEST_SCHEME'] === 'http')
-    ) {
-      header('Location: https://' . $cfg['server_name'] . $_SERVER['REQUEST_URI']);
-      exit;
-    }
-
     /** @var mixed Temporary variable for the general settings, which should be an array */
     $tmp = false;
     if (function_exists('yaml_parse') && file_exists('cfg/settings.yml') && ($tmp = file_get_contents('cfg/settings.yml'))) {
