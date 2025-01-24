@@ -17,24 +17,43 @@
 # https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/templates/Getting-Started.gitlab-ci.yml
 
 stages:          # List of stages for jobs, and their order of execution
+  - codeberg
   - github
 
+codeberg-sync:
+  stage: codeberg
+  script:
+    - echo "Synching with Codeberg"
+    - rm -rf ~/essentials_bbn-router
+    - mkdir ~/essentials_bbn-router
+    - cd ~/essentials_bbn-router
+    - git clone --bare git@git.bbn.so:essentials/bbn-router.git .
+    - git remote add --mirror=fetch codeberg git@codeberg.org:bbn/router.git
+    - git fetch git@git.bbn.so:essentials/bbn-router.git master
+    - git fetch git@codeberg.org:bbn/router.git master
+    - git push -f git@codeberg.org:bbn/router.git master
+    - git push -f git@codeberg.org:bbn/router.git --tags
+    - cd -
+    - rm -rf ~/essentials_bbn-router
+    - echo "Codeberg synching finished !"
+  tags:
+    - codeberg
 github-sync:       # This job runs in the build stage, which runs first.
   stage: github
   script:
     - echo "Synching with Github..."
-    - cd ~/
-    - rm -rf essentials
-    - mkdir -p essentials/bbn-router
-    - git clone --bare git@git.bbn.so:essentials/bbn-router.git essentials/bbn-router
-    - cd essentials/bbn-router
+    - rm -rf ~/essentials_bbn-router
+    - mkdir ~/essentials_bbn-router
+    - cd ~/essentials_bbn-router
+    - git clone --bare git@git.bbn.so:essentials/bbn-router.git .
     - git remote add --mirror=fetch github git@github.com:nabab/bbn-router.git
     - git fetch git@git.bbn.so:essentials/bbn-router.git master
     - git fetch git@github.com:nabab/bbn-router.git master
-    - git push -f git@github.com:nabab/bbn-router.git --all
+    - git push -f git@github.com:nabab/bbn-router.git master
     - git push -f git@github.com:nabab/bbn-router.git --tags
     - cd -
-    - rm -rf essentials
-    - echo "Synching finished !"
+    - rm -rf ~/essentials_bbn-router
+    - echo "Github synching finished !"
   tags:
     - github
+
