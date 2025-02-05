@@ -457,24 +457,30 @@ and put it in the public root of your web server and call it from your browser.
     bbn\X::log(['All set up', $chrono->measure()], 'timings');
   }
 
-  /** @var bool Becomes profiler object if profiling is activated */
-  $profiler = false;
-  // Adding profiling if true or is current url or starts like url if finishes with a *
-  if (
-    BBN_IS_DEV
-    && defined('BBN_PROFILING') && (
-      (BBN_PROFILING === true)
-      || (is_string(BBN_PROFILING)
-        && (($bbn->mvc->getUrl() === BBN_PROFILING)
-          || ((substr(BBN_PROFILING, -1) === '*')
-            && (strpos($bbn->mvc->getUrl(), substr(BBN_PROFILING, 0, -1)) === 0)
+
+
+  if (constant('BBN_IS_DEV')) {
+    // Warning becomes exception in dev
+    set_error_handler(function(int $errno, string $errstr) {
+      throw new \Exception($errstr, $errno);
+    }, E_WARNING);
+
+    // Adding profiling if true or is current url or starts like url if finishes with a *
+    /** @var bool Becomes profiler object if profiling is activated */
+    $profiler = false;
+    $prof = defined('BBN_PROFILING') ? constant('BBN_PROFILING') : false;
+    if (($prof === true)
+      || (is_string($prof)
+        && (($bbn->mvc->getUrl() === $prof)
+          || ((substr($prof, -1) === '*')
+            && (strpos($bbn->mvc->getUrl(), substr($prof, 0, -1)) === 0)
           )
         )
       )
-    )
-  ) {
-    $profiler = new bbn\Appui\Profiler($bbn->db);
-    $profiler->start();
+    ) {
+      $profiler = new bbn\Appui\Profiler($bbn->db);
+      $profiler->start();
+    }
   }
 
   // Routing
