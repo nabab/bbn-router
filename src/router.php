@@ -271,7 +271,7 @@ and put it in the public root of your web server and call it from your browser.
   include_once(constant('BBN_LIB_PATH') . 'autoload.php');
 
   /** @var bool If set to true will log execution timings of the router */
-  $timings = (bool)constant('BBN_TIMINGS');
+  $timings = (bool)(defined('BBN_TIMINGS') && constant('BBN_TIMINGS'));
   // If timing
   if ($timings) {
     $chrono = new bbn\Util\Timer();
