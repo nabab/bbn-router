@@ -334,7 +334,7 @@ and put it in the public root of your web server and call it from your browser.
     include_once 'cfg/init.php';
   }
 
-  if (!defined('BBN_DATABASE') || (BBN_DATABASE === '')) {
+  if (!constant('BBN_DATABASE')) {
     // No database
     $bbn->db = false;
     $bbn->dbs = [];
