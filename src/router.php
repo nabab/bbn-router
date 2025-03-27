@@ -214,10 +214,10 @@ and put it in the public root of your web server and call it from your browser.
 
   /** The base URL of the application */
   $url = 'http'
-    . (BBN_IS_SSL ? 's' : '')
-    . '://' . BBN_SERVER_NAME
-    . (BBN_PORT && !in_array(BBN_PORT, [80, 443]) ? ':' . BBN_PORT : '')
-    . (BBN_CUR_PATH ? BBN_CUR_PATH : '');
+    . (constant('BBN_IS_SSL') ? 's' : '')
+    . '://' . constant('BBN_SERVER_NAME')
+    . (constant('BBN_PORT') && !in_array(constant('BBN_PORT'), [80, 443]) ? ':' . constant('BBN_PORT') : '')
+    . (constant('BBN_CUR_PATH') ?: '');
   if (substr($url, -1) !== '/') {
     $url .= '/';
   }
@@ -225,7 +225,7 @@ and put it in the public root of your web server and call it from your browser.
   define('BBN_URL', $url);
 
   // If the server name is different the request is redirected
-  if (!$bbn->is_cli && ($_SERVER['SERVER_NAME'] !== BBN_SERVER_NAME)) {
+  if (!$bbn->is_cli && ($_SERVER['SERVER_NAME'] !== constant('BBN_SERVER_NAME'))) {
     header('Location: ' . BBN_URL);
   }
 
@@ -255,18 +255,20 @@ and put it in the public root of your web server and call it from your browser.
   }
 
   // Classes autoloaders
+  $localLibRoot = constant('BBN_APP_PATH') . 'src/lib/';
   spl_autoload_register(
-    function ($class_name) {
+    function ($class_name) use ($localLibRoot) {
       if ((strpos($class_name, '/') === false) && (strpos($class_name, '.') === false)) {
         $cls = explode('\\', $class_name);
         $path = implode('/', $cls);
-        if (file_exists(BBN_APP_PATH . 'src/lib/' . $path . '.php')) {
-          include_once BBN_APP_PATH . 'src/lib/' . $path . '.php';
+        if (file_exists($localLibRoot . $path . '.php')) {
+          include_once $localLibRoot . $path . '.php';
         }
       }
     }
   );
-  include BBN_LIB_PATH . 'autoload.php';
+
+  include constant('BBN_LIB_PATH') . 'autoload.php';
 
   /** @var bool If set to true will log execution timings of the router */
   $timings = !!(defined('BBN_TIMINGS') && BBN_TIMINGS);
@@ -361,11 +363,11 @@ and put it in the public root of your web server and call it from your browser.
   define('BBN_REQUEST_PATH', $bbn->mvc->getRequest());
 
   // Setting up options
-  if (defined('BBN_OPTIONS') && BBN_OPTIONS) {
-    $options_cls = is_string(BBN_OPTIONS) && class_exists(BBN_OPTIONS) ? BBN_OPTIONS : '\\bbn\\Appui\\Option';
+  if ($optCls = constant('BBN_OPTIONS')) {
+    $optCls = is_string($optCls) && class_exists($optCls) ? $optCls : '\\bbn\\Appui\\Option';
     $bbn->mvc->addInc(
       'options',
-      new $options_cls($bbn->db)
+      new $optCls($bbn->db)
     );
   }
 
@@ -388,42 +390,36 @@ and put it in the public root of your web server and call it from your browser.
       $defaults = $bbn->vars['default_session'];
     }
 
-    if (defined('BBN_USER') && BBN_USER) {
-      if (headers_sent($filename, $linenum)) {
-        bbn\X::ddump("BOOOOOOOOO", $filename, $linenum);
-      }
-      $session_cls = defined('BBN_SESSION') && is_string(BBN_SESSION) && class_exists(BBN_SESSION) ?
-        BBN_SESSION : '\\bbn\\User\\Session';
+    if ($userCls = constant('BBN_USER')) {
+      $sessCls = constant('BBN_SESSION') ?: '\\bbn\\User\\Session';
       if (defined("BBN_NO_REDIS")) {
         session_save_path($bbn->mvc->tmpPath() . 'sessions');
       }
 
-      $bbn->session = new $session_cls($defaults);
+      $bbn->session = new $sessCls($defaults);
       $bbn->mvc->addInc('session', $bbn->session);
-      $user_cls = is_string(BBN_USER) && class_exists(BBN_USER) ?
-        BBN_USER : '\\bbn\\User';
+      $userCls = is_string($userCls) && class_exists($userCls) ? $userCls : '\\bbn\\User';
       $bbn->mvc->addInc(
         'user',
-        new $user_cls(
+        new $userCls(
           $bbn->db,
           $bbn->mvc->getPost()
         )
       );
 
-      if (defined('BBN_PREFERENCES') && BBN_PREFERENCES) {
-        $pref_cls = is_string(BBN_PREFERENCES) && class_exists(BBN_PREFERENCES) ?
-          BBN_PREFERENCES : '\\bbn\\User\\Preferences';
-        $bbn->mvc->addInc('pref', new $pref_cls($bbn->db));
+      if ($prefCls = constant('BBN_PREFERENCES')) {
+        $prefCls = is_string($prefCls) && class_exists($prefCls) ? $prefCls : '\\bbn\\User\\Preferences';
+        $bbn->mvc->addInc('pref', new $prefCls($bbn->db));
       }
 
-      if (defined('BBN_PERMISSIONS') && BBN_PERMISSIONS) {
-        $perm_cls = is_string(BBN_PERMISSIONS) && class_exists(BBN_PERMISSIONS) ?
-          BBN_PERMISSIONS : '\\bbn\\User\\Permissions';
-        $bbn->mvc->addInc('perm', new $perm_cls($routes));
+      if ($permCls = constant('BBN_PERMISSIONS')) {
+        $permCls = is_string($permCls) && class_exists($permCls) ? $permCls : '\\bbn\\User\\Permissions';
+        $bbn->mvc->addInc('perm', new $permCls($routes));
       }
 
-      if (defined('BBN_HISTORY') && BBN_HISTORY) {
-        bbn\Appui\History::init(
+      if ($histCls = constant('BBN_HISTORY')) {
+        $histCls = is_string($histCls) && class_exists($histCls) ? $histCls : '\\bbn\\Appui\\History';
+        $histCls::init(
           $bbn->db,
           // User
           ['user' => $bbn->mvc->inc->user->getId() ?: BBN_EXTERNAL_USER_ID]
@@ -434,20 +430,21 @@ and put it in the public root of your web server and call it from your browser.
     if ($cfg_files['custom2']) {
       include_once 'cfg/custom2.php';
     }
-  } elseif (defined('BBN_USER') && BBN_USER && defined('BBN_EXTERNAL_USER_ID')) {
+  }
+  elseif ($userCls = constant('BBN_USER') && defined('BBN_EXTERNAL_USER_ID')) {
     // Setting up user
-    $user_cls = is_string(BBN_USER) && class_exists(BBN_USER) ?
-      BBN_USER : '\\bbn\\User';
+    $userCls = is_string($userCls) && class_exists($userCls) ? $userCls : '\\bbn\\User';
     $bbn->mvc->addInc(
       'user',
-      new $user_cls(
+      new $userCls(
         $bbn->db,
         ['id' => BBN_EXTERNAL_USER_ID]
       )
     );
     // Setting up history
-    if (defined('BBN_HISTORY')) {
-      bbn\Appui\History::init(
+    if ($histCls = constant('BBN_HISTORY')) {
+      $histCls = is_string($histCls) && class_exists($histCls) ? $histCls : '\\bbn\\Appui\\History';
+      $histCls::init(
         $bbn->db,
         // User adhérent
         ['user' => BBN_EXTERNAL_USER_ID]
