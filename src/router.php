@@ -261,17 +261,17 @@ and put it in the public root of your web server and call it from your browser.
       if ((strpos($class_name, '/') === false) && (strpos($class_name, '.') === false)) {
         $cls = explode('\\', $class_name);
         $path = implode('/', $cls);
-        if (file_exists($localLibRoot . $path . '.php')) {
-          include_once $localLibRoot . $path . '.php';
+        if (file_exists("{$localLibRoot}{$path}.php")) {
+          include_once("{$localLibRoot}{$path}.php");
         }
       }
     }
   );
 
-  include constant('BBN_LIB_PATH') . 'autoload.php';
+  include_once(constant('BBN_LIB_PATH') . 'autoload.php');
 
   /** @var bool If set to true will log execution timings of the router */
-  $timings = !!(defined('BBN_TIMINGS') && BBN_TIMINGS);
+  $timings = (bool)constant('BBN_TIMINGS');
   // If timing
   if ($timings) {
     $chrono = new bbn\Util\Timer();
@@ -282,9 +282,9 @@ and put it in the public root of your web server and call it from your browser.
   mb_internal_encoding('UTF-8');
 
   // The default timezome of the site (before finding out about the user's timezone
-  date_default_timezone_set(BBN_TIMEZONE);
+  date_default_timezone_set(constant('BBN_TIMEZONE'));
 
-  ini_set('error_log', BBN_DATA_PATH . 'logs/_php_error.log');
+  ini_set('error_log', constant('BBN_DATA_PATH') . 'logs/_php_error.log');
 
   /** @var bbn\Cache The cache engine */
   $cache = bbn\Cache::getEngine('files');
