@@ -392,7 +392,7 @@ and put it in the public root of your web server and call it from your browser.
 
     if ($userCls = constant('BBN_USER')) {
       $sessCls = constant('BBN_SESSION') ?: '\\bbn\\User\\Session';
-      if (defined("BBN_NO_REDIS")) {
+      if (!$installer && defined("BBN_NO_REDIS")) {
         session_save_path($bbn->mvc->tmpPath() . 'sessions');
       }
 
