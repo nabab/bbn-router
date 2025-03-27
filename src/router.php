@@ -283,7 +283,6 @@ and put it in the public root of your web server and call it from your browser.
   date_default_timezone_set(BBN_TIMEZONE);
 
   ini_set('error_log', BBN_DATA_PATH . 'logs/_php_error.log');
-  //set_error_handler('\\bbn\\X::log_error', E_ALL);
 
   /** @var bbn\Cache The cache engine */
   $cache = bbn\Cache::getEngine('files');
