@@ -390,6 +390,9 @@ and put it in the public root of your web server and call it from your browser.
     }
 
     if (defined('BBN_USER') && BBN_USER) {
+      if (headers_sent($filename, $linenum)) {
+        X::ddump("BOOOOOOOOO", $filename, $linenum);
+      }
       $session_cls = defined('BBN_SESSION') && is_string(BBN_SESSION) && class_exists(BBN_SESSION) ?
         BBN_SESSION : '\\bbn\\User\\Session';
       if (defined("BBN_NO_REDIS")) {
