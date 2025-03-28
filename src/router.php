@@ -390,8 +390,8 @@ and put it in the public root of your web server and call it from your browser.
       $defaults = $bbn->vars['default_session'];
     }
 
-    if ($userCls = constant('BBN_USER')) {
-      $sessCls = constant('BBN_SESSION') ?: '\\bbn\\User\\Session';
+    if (defined('BBN_USER') && ($userCls = constant('BBN_USER'))) {
+      $sessCls = defined('BBN_SESSION') ? constant('BBN_SESSION') : '\\bbn\\User\\Session';
       if (!$installer && defined("BBN_NO_REDIS")) {
         session_save_path($bbn->mvc->tmpPath() . 'sessions');
       }
@@ -407,17 +407,17 @@ and put it in the public root of your web server and call it from your browser.
         )
       );
 
-      if ($prefCls = constant('BBN_PREFERENCES')) {
+      if (defined('BBN_PREFERENCES') && ($prefCls = constant('BBN_PREFERENCES'))) {
         $prefCls = is_string($prefCls) && class_exists($prefCls) ? $prefCls : '\\bbn\\User\\Preferences';
         $bbn->mvc->addInc('pref', new $prefCls($bbn->db));
       }
 
-      if ($permCls = constant('BBN_PERMISSIONS')) {
+      if (defined('BBN_PERMISSIONS') && ($permCls = constant('BBN_PERMISSIONS'))) {
         $permCls = is_string($permCls) && class_exists($permCls) ? $permCls : '\\bbn\\User\\Permissions';
         $bbn->mvc->addInc('perm', new $permCls($routes));
       }
 
-      if ($histCls = constant('BBN_HISTORY')) {
+      if (defined('BBN_HISTORY') && ($histCls = constant('BBN_HISTORY'))) {
         $histCls = is_string($histCls) && class_exists($histCls) ? $histCls : '\\bbn\\Appui\\History';
         $histCls::init(
           $bbn->db,
@@ -431,7 +431,7 @@ and put it in the public root of your web server and call it from your browser.
       include_once 'cfg/custom2.php';
     }
   }
-  elseif ($userCls = constant('BBN_USER') && defined('BBN_EXTERNAL_USER_ID')) {
+  elseif (defined('BBN_PREFERENCES') && ($userCls = constant('BBN_USER')) && defined('BBN_EXTERNAL_USER_ID')) {
     // Setting up user
     $userCls = is_string($userCls) && class_exists($userCls) ? $userCls : '\\bbn\\User';
     $bbn->mvc->addInc(
@@ -442,7 +442,7 @@ and put it in the public root of your web server and call it from your browser.
       )
     );
     // Setting up history
-    if ($histCls = constant('BBN_HISTORY')) {
+    if (defined('BBN_HISTORY') && ($histCls = constant('BBN_HISTORY'))) {
       $histCls = is_string($histCls) && class_exists($histCls) ? $histCls : '\\bbn\\Appui\\History';
       $histCls::init(
         $bbn->db,
