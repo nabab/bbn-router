@@ -422,7 +422,7 @@ and put it in the public root of your web server and call it from your browser.
         $histCls::init(
           $bbn->db,
           // User
-          ['user' => $bbn->mvc->inc->user->getId() ?: BBN_EXTERNAL_USER_ID]
+          ['user' => $bbn->mvc->inc->user->getId() ?: (defined('BBN_EXTERNAL_USER_ID') ? constant('BBN_EXTERNAL_USER_ID') : null)],
         );
       }
     }
