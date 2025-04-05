@@ -58,7 +58,8 @@ and put it in the public root of your web server and call it from your browser.
     }
 
     // Good environment
-    if (($cJson['data']['hostname'] === $hostname)
+    if (!empty($cJson)
+        && ($cJson['data']['hostname'] === $hostname)
         && ($cJson['data']['app_path'] === $app_path)) {
           // Another process updates or time is not up
       if (!empty($cJson['updating']) || (time() - $cJson['time'] < 60)) {
