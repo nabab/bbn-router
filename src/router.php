@@ -460,6 +460,8 @@ and put it in the public root of your web server and call it from your browser.
 
 
   if (constant('BBN_IS_DEV')) {
+    set_error_handler('\\bbn\\X::logError', E_ALL);
+    set_exception_handler('\\bbn\\X::logException');
     // Warning becomes exception in dev
     set_error_handler(function(int $errno, string $errstr) {
       throw new \Exception($errstr, $errno);
