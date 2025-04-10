@@ -460,12 +460,12 @@ and put it in the public root of your web server and call it from your browser.
 
 
   if (constant('BBN_IS_DEV')) {
-    set_error_handler('\\bbn\\X::logError', E_ALL);
-    set_exception_handler('\\bbn\\X::logException');
-    // Warning becomes exception in dev
     set_error_handler(function(int $errno, string $errstr) {
       throw new \Exception($errstr, $errno);
     }, E_WARNING);
+    set_error_handler('\\bbn\\X::logError', E_ALL|~E_WARNING);
+    set_exception_handler('\\bbn\\X::logException');
+    // Warning becomes exception in dev
 
     // Adding profiling if true or is current url or starts like url if finishes with a *
     /** @var bool Becomes profiler object if profiling is activated */
