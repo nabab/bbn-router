@@ -215,9 +215,9 @@ and put it in the public root of your web server and call it from your browser.
 
   /** The base URL of the application */
   $url = 'http'
-    . (constant('BBN_IS_SSL') ? 's' : '')
+    . (defined('BBN_IS_SSL') && constant('BBN_IS_SSL') ? 's' : '')
     . '://' . constant('BBN_SERVER_NAME')
-    . (constant('BBN_PORT') && !in_array(constant('BBN_PORT'), [80, 443]) ? ':' . constant('BBN_PORT') : '')
+    . (defined('BBN_PORT') && constant('BBN_PORT') && !in_array(constant('BBN_PORT'), [80, 443]) ? ':' . constant('BBN_PORT') : '')
     . (constant('BBN_CUR_PATH') ?: '');
   if (substr($url, -1) !== '/') {
     $url .= '/';
@@ -335,7 +335,7 @@ and put it in the public root of your web server and call it from your browser.
     include_once 'cfg/init.php';
   }
 
-  if (!constant('BBN_DATABASE')) {
+  if (!defined('BBN_DATABASE')) {
     // No database
     $bbn->db = false;
     $bbn->dbs = [];
@@ -364,7 +364,7 @@ and put it in the public root of your web server and call it from your browser.
   define('BBN_REQUEST_PATH', $bbn->mvc->getRequest());
 
   // Setting up options
-  if ($optCls = constant('BBN_OPTIONS')) {
+  if (defined('BBN_OPTIONS') && ($optCls = constant('BBN_OPTIONS'))) {
     $optCls = is_string($optCls) && class_exists($optCls) ? $optCls : '\\bbn\\Appui\\Option';
     $bbn->mvc->addInc(
       'options',
