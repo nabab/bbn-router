@@ -326,7 +326,11 @@ and put it in the public root of your web server and call it from your browser.
   } elseif (function_exists('json_decode') && file_exists('cfg/routes.json') && ($tmp = file_get_contents('cfg/routes.json'))) {
     $routes = json_decode($tmp, true);
   } else {
-    $routes = [];
+    throw new Exception('Impossible to read the configuration file (routes.json or routes.yml).');
+  }
+
+  if (empty($routes['root'])) {
+    throw new Exception('Impossible to read the configuration file (routes.json or routes.yml).');
   }
 
   define('BBN_DEFAULT_PATH', !empty($routes['default']) ? $routes['default'] : '');
@@ -350,6 +354,12 @@ and put it in the public root of your web server and call it from your browser.
   }
 
   $bbn->mvc = new bbn\Mvc($bbn->db, $routes);
+
+  foreach ($routes['root'] as $url => $plugin) {
+    if (!empty($plugin['static'])) {
+      $bbn->mvc->addStaticRoute(...array_map(fn($a): string => $url . '/' . $a, $plugin['static']));
+    }
+  }
 
   if ($timings) {
     bbn\X::log(['MVC', $chrono->measure()], 'timings');
@@ -379,77 +389,81 @@ and put it in the public root of your web server and call it from your browser.
   }
 
   // CLI
-  if (!$bbn->is_cli/* && !$bbn->mvc->isStaticRoute(BBN_REQUEST_PATH)*/) {
-    if ($cfg_files['session']) {
-      $default = file_get_contents('cfg/session.json');
-      if ($default && ($default = json_decode($default, true))) {
-        $defaults = array_merge($bbn->vars['default_session'], $default);
-      }
-    }
-
-    if (empty($defaults)) {
-      $defaults = $bbn->vars['default_session'];
-    }
-
-    if (defined('BBN_USER') && ($userCls = constant('BBN_USER'))) {
-      $sessCls = defined('BBN_SESSION') ? constant('BBN_SESSION') : '\\bbn\\User\\Session';
-      if (!session_id()/* && defined("BBN_NO_REDIS")*/) {
-        session_save_path($bbn->mvc->tmpPath() . 'sessions');
+  define('BBN_IS_STATIC_ROUTE', $bbn->mvc->isStaticRoute(BBN_REQUEST_PATH));
+  bbn\X::log("isStaticRoute " . BBN_REQUEST_PATH . ' ? ' . (BBN_IS_STATIC_ROUTE ? 'YES' : 'NO'), 'isStaticRoute');
+  if (!BBN_IS_STATIC_ROUTE) {
+    if (!$bbn->is_cli) {
+      if ($cfg_files['session']) {
+        $default = file_get_contents('cfg/session.json');
+        if ($default && ($default = json_decode($default, true))) {
+          $defaults = array_merge($bbn->vars['default_session'], $default);
+        }
       }
 
-      $bbn->session = new $sessCls($defaults);
-      $bbn->mvc->addInc('session', $bbn->session);
+      if (empty($defaults)) {
+        $defaults = $bbn->vars['default_session'];
+      }
+
+      if (defined('BBN_USER') && ($userCls = constant('BBN_USER'))) {
+        $sessCls = defined('BBN_SESSION') ? constant('BBN_SESSION') : '\\bbn\\User\\Session';
+        if (!session_id()/* && defined("BBN_NO_REDIS")*/) {
+          session_save_path($bbn->mvc->tmpPath() . 'sessions');
+        }
+
+        $bbn->session = new $sessCls($defaults);
+        $bbn->mvc->addInc('session', $bbn->session);
+        $userCls = is_string($userCls) && class_exists($userCls) ? $userCls : '\\bbn\\User';
+        $bbn->mvc->addInc(
+          'user',
+          new $userCls(
+            $bbn->db,
+            $bbn->mvc->getPost()
+          )
+        );
+
+        if (defined('BBN_PREFERENCES') && ($prefCls = constant('BBN_PREFERENCES'))) {
+          $prefCls = is_string($prefCls) && class_exists($prefCls) ? $prefCls : '\\bbn\\User\\Preferences';
+          $bbn->mvc->addInc('pref', new $prefCls($bbn->db));
+        }
+
+        if (defined('BBN_PERMISSIONS') && ($permCls = constant('BBN_PERMISSIONS'))) {
+          $permCls = is_string($permCls) && class_exists($permCls) ? $permCls : '\\bbn\\User\\Permissions';
+          $bbn->mvc->addInc('perm', new $permCls($routes));
+        }
+
+        if (defined('BBN_HISTORY') && ($histCls = constant('BBN_HISTORY'))) {
+          $histCls = is_string($histCls) && class_exists($histCls) ? $histCls : '\\bbn\\Appui\\History';
+          $histCls::init(
+            $bbn->db,
+            // User
+            ['user' => $bbn->mvc->inc->user->getId() ?: (defined('BBN_EXTERNAL_USER_ID') ? constant('BBN_EXTERNAL_USER_ID') : null)],
+          );
+        }
+      }
+
+      if ($cfg_files['custom2']) {
+        include_once 'cfg/custom2.php';
+      }
+    }
+    elseif (defined('BBN_PREFERENCES') && ($userCls = constant('BBN_USER')) && defined('BBN_EXTERNAL_USER_ID')) {
+      // Setting up user
       $userCls = is_string($userCls) && class_exists($userCls) ? $userCls : '\\bbn\\User';
       $bbn->mvc->addInc(
         'user',
         new $userCls(
           $bbn->db,
-          $bbn->mvc->getPost()
+          ['id' => BBN_EXTERNAL_USER_ID]
         )
       );
-
-      if (defined('BBN_PREFERENCES') && ($prefCls = constant('BBN_PREFERENCES'))) {
-        $prefCls = is_string($prefCls) && class_exists($prefCls) ? $prefCls : '\\bbn\\User\\Preferences';
-        $bbn->mvc->addInc('pref', new $prefCls($bbn->db));
-      }
-
-      if (defined('BBN_PERMISSIONS') && ($permCls = constant('BBN_PERMISSIONS'))) {
-        $permCls = is_string($permCls) && class_exists($permCls) ? $permCls : '\\bbn\\User\\Permissions';
-        $bbn->mvc->addInc('perm', new $permCls($routes));
-      }
-
+      // Setting up history
       if (defined('BBN_HISTORY') && ($histCls = constant('BBN_HISTORY'))) {
         $histCls = is_string($histCls) && class_exists($histCls) ? $histCls : '\\bbn\\Appui\\History';
         $histCls::init(
           $bbn->db,
-          // User
-          ['user' => $bbn->mvc->inc->user->getId() ?: (defined('BBN_EXTERNAL_USER_ID') ? constant('BBN_EXTERNAL_USER_ID') : null)],
+          // User adhérent
+          ['user' => BBN_EXTERNAL_USER_ID]
         );
       }
-    }
-
-    if ($cfg_files['custom2']) {
-      include_once 'cfg/custom2.php';
-    }
-  }
-  elseif (defined('BBN_PREFERENCES') && ($userCls = constant('BBN_USER')) && defined('BBN_EXTERNAL_USER_ID')) {
-    // Setting up user
-    $userCls = is_string($userCls) && class_exists($userCls) ? $userCls : '\\bbn\\User';
-    $bbn->mvc->addInc(
-      'user',
-      new $userCls(
-        $bbn->db,
-        ['id' => BBN_EXTERNAL_USER_ID]
-      )
-    );
-    // Setting up history
-    if (defined('BBN_HISTORY') && ($histCls = constant('BBN_HISTORY'))) {
-      $histCls = is_string($histCls) && class_exists($histCls) ? $histCls : '\\bbn\\Appui\\History';
-      $histCls::init(
-        $bbn->db,
-        // User adhérent
-        ['user' => BBN_EXTERNAL_USER_ID]
-      );
     }
   }
 
