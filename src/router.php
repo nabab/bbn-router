@@ -390,7 +390,6 @@ and put it in the public root of your web server and call it from your browser.
 
   // CLI
   define('BBN_IS_STATIC_ROUTE', $bbn->mvc->isStaticRoute(BBN_REQUEST_PATH));
-  bbn\X::log("isStaticRoute " . BBN_REQUEST_PATH . ' ? ' . (BBN_IS_STATIC_ROUTE ? 'YES' : 'NO'), 'isStaticRoute');
   if (!BBN_IS_STATIC_ROUTE) {
     if (!$bbn->is_cli) {
       if ($cfg_files['session']) {
