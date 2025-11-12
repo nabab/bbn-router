@@ -534,4 +534,16 @@ and put it in the public root of your web server and call it from your browser.
   if ($timings) {
     bbn\X::log(['output', $chrono->measure()], 'timings');
   }
+
+  if (defined("BBN_MVC_ID") && isset($bbn->db, $bbn->mvc->inc->timer)) {
+    $bbn->db->update(
+      'bbn_mvc_logs',
+      [
+        'duration' => round($bbn->mvc->inc->timer->stop(BBN_MVC_ID) * 1000),
+      ],
+      [
+        'id' => BBN_MVC_ID
+      ]
+    );
+  }
 })($installer ?? null);
