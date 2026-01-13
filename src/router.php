@@ -288,7 +288,7 @@ and put it in the public root of your web server and call it from your browser.
   ini_set('error_log', constant('BBN_DATA_PATH') . 'logs/_php_error.log');
 
   /** @var bbn\Cache The cache engine */
-  $cache = bbn\Cache::getEngine('files');
+  $cache = bbn\Cache::getEngine();
 
   // Setting the custom files presence in cache
   if ($cache_cfg = $cache->get('cfg_files')) {
