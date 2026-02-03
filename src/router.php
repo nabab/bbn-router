@@ -454,6 +454,8 @@ and put it in the public root of your web server and call it from your browser.
           ['id' => BBN_EXTERNAL_USER_ID]
         )
       );
+      $prefCls = is_string($prefCls) && class_exists($prefCls) ? $prefCls : '\\bbn\\User\\Preferences';
+      $bbn->mvc->addInc('pref', new $prefCls($bbn->db));
       // Setting up history
       if (defined('BBN_HISTORY') && ($histCls = constant('BBN_HISTORY'))) {
         $histCls = is_string($histCls) && class_exists($histCls) ? $histCls : '\\bbn\\Appui\\History';
