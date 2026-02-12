@@ -22,6 +22,7 @@
  */
 (function ($installer) {
 
+  define('BBN_START_TIME', microtime(true));
   /** @todo Not sure why... */
   @ini_set('zlib.output_compression', 'off');
   /** The only/main object */
@@ -79,7 +80,7 @@ and put it in the public root of your web server and call it from your browser.
       && ($tmp = file_get_contents('cfg/environment.yml'))
     ) {
       /** @var array Environment's configuration */
-      $cfgs = yaml_parse($tmp);
+      $cfgs = call_user_func('yaml_parse', $tmp);
     }
     // Or parsing JSON environment's configuration
     elseif (
@@ -146,7 +147,7 @@ and put it in the public root of your web server and call it from your browser.
     /** @var mixed Temporary variable for the general settings, which should be an array */
     $tmp = false;
     if (function_exists('yaml_parse') && file_exists('cfg/settings.yml') && ($tmp = file_get_contents('cfg/settings.yml'))) {
-      $tmp = yaml_parse($tmp);
+      $tmp = call_user_func('yaml_parse', $tmp);
     } elseif (function_exists('json_decode') && file_exists('cfg/settings.json') && ($tmp = file_get_contents('cfg/settings.json'))) {
       $tmp = json_decode($tmp, true);
     }
@@ -272,9 +273,9 @@ and put it in the public root of your web server and call it from your browser.
   include_once(constant('BBN_LIB_PATH') . 'autoload.php');
 
   /** @var bool If set to true will log execution timings of the router */
-  $timings = (bool)(defined('BBN_TIMINGS') && constant('BBN_TIMINGS'));
+  $timer = (bool)(defined('BBN_TIMER') && constant('BBN_TIMER'));
   // If timing
-  if ($timings) {
+  if ($timer) {
     $chrono = new bbn\Util\Timer();
     $chrono->start();
   }
@@ -304,7 +305,7 @@ and put it in the public root of your web server and call it from your browser.
     $cache->set('cfg_files', $cfg_files, 600);
   }
 
-  if ($timings) {
+  if ($timer) {
     bbn\X::log(['config file', $chrono->measure()], 'timings');
   }
 
@@ -322,7 +323,7 @@ and put it in the public root of your web server and call it from your browser.
 
   // Loading routes configuration
   if (function_exists('yaml_parse') && file_exists('cfg/routes.yml') && ($tmp = file_get_contents('cfg/routes.yml'))) {
-    $routes = yaml_parse($tmp);
+    $routes = call_user_func('yaml_parse', $tmp);
   } elseif (function_exists('json_decode') && file_exists('cfg/routes.json') && ($tmp = file_get_contents('cfg/routes.json'))) {
     $routes = json_decode($tmp, true);
   } else {
@@ -349,7 +350,7 @@ and put it in the public root of your web server and call it from your browser.
     $bbn->dbs = [&$bbn->db];
   }
 
-  if ($timings) {
+  if ($timer) {
     bbn\X::log(['DB', $chrono->measure()], 'timings');
   }
 
@@ -361,7 +362,8 @@ and put it in the public root of your web server and call it from your browser.
     }
   }
 
-  if ($timings) {
+  if ($timer) {
+    bbn\X::log(str_repeat('-', 25) . ' ' . $bbn->mvc->getUrl() .' ' . str_repeat('-', 25), 'timings');
     bbn\X::log(['MVC', $chrono->measure()], 'timings');
   }
 
@@ -443,8 +445,7 @@ and put it in the public root of your web server and call it from your browser.
       if ($cfg_files['custom2']) {
         include_once 'cfg/custom2.php';
       }
-    }
-    elseif (defined('BBN_PREFERENCES') && ($userCls = constant('BBN_USER')) && defined('BBN_EXTERNAL_USER_ID')) {
+    } elseif (defined('BBN_PREFERENCES') && ($userCls = constant('BBN_USER')) && defined('BBN_EXTERNAL_USER_ID')) {
       // Setting up user
       $userCls = is_string($userCls) && class_exists($userCls) ? $userCls : '\\bbn\\User';
       $bbn->mvc->addInc(
@@ -454,11 +455,8 @@ and put it in the public root of your web server and call it from your browser.
           ['id' => BBN_EXTERNAL_USER_ID]
         )
       );
-      if ($prefCls = constant('BBN_PREFERENCES')) {
-        $prefCls = is_string($prefCls) && class_exists($prefCls) ? $prefCls : '\\bbn\\User\\Preferences';
-        $bbn->mvc->addInc('pref', new $prefCls($bbn->db));
-      }
-
+      $prefCls = is_string($prefCls) && class_exists($prefCls) ? $prefCls : '\\bbn\\User\\Preferences';
+      $bbn->mvc->addInc('pref', new $prefCls($bbn->db));
       // Setting up history
       if (defined('BBN_HISTORY') && ($histCls = constant('BBN_HISTORY'))) {
         $histCls = is_string($histCls) && class_exists($histCls) ? $histCls : '\\bbn\\Appui\\History';
@@ -471,17 +469,17 @@ and put it in the public root of your web server and call it from your browser.
     }
   }
 
-  if ($timings) {
+  if ($timer) {
     bbn\X::log(['All set up', $chrono->measure()], 'timings');
   }
 
 
 
   if (constant('BBN_IS_DEV')) {
-    set_error_handler(function(int $errno, string $errstr) {
+    set_error_handler(function (int $errno, string $errstr) {
       throw new \Exception($errstr, $errno);
     }, E_WARNING);
-    set_error_handler('\\bbn\\X::logError', E_ALL|~E_WARNING);
+    set_error_handler('\\bbn\\X::logError', E_ALL | ~E_WARNING);
     set_exception_handler('\\bbn\\X::logException');
     // Warning becomes exception in dev
 
@@ -503,16 +501,18 @@ and put it in the public root of your web server and call it from your browser.
     }
   }
 
+  define('BBN_LAUNCH_TIME', microtime(true));
+
   // Routing
   if ($bbn->mvc->check()) {
-    if ($timings) {
+    if ($timer) {
       bbn\X::log(['checked', $chrono->measure()], 'timings');
     }
 
     // Executing
     $bbn->mvc->process();
 
-    if ($timings) {
+    if ($timer) {
       bbn\X::log(['processed', $chrono->measure()], 'timings');
     }
 
@@ -524,7 +524,7 @@ and put it in the public root of your web server and call it from your browser.
       include_once 'cfg/custom3.php';
     }
 
-    if ($timings) {
+    if ($timer) {
       bbn\X::log(['custom 3', $chrono->measure()], 'timings');
     }
   }
@@ -536,19 +536,21 @@ and put it in the public root of your web server and call it from your browser.
   // Outputs the result
   $bbn->mvc->output();
 
-  if ($timings) {
+  if ($timer) {
     bbn\X::log(['output', $chrono->measure()], 'timings');
   }
 
-  if (defined("BBN_MVC_ID") && isset($bbn->db, $bbn->mvc->inc->timer)) {
+  if (defined("BBN_MVC_ID") && isset($bbn->db, $bbn->mvc->timer)) {
+    //bbn\X::ddump($bbn->mvc->timer->hasStarted(constant('BBN_MVC_ID')), $bbn->mvc->timer->results(), constant('BBN_MVC_ID'));
     $bbn->db->update(
       'bbn_mvc_logs',
       [
-        'duration' => round($bbn->mvc->inc->timer->stop(BBN_MVC_ID) * 1000),
+        'duration' => round($bbn->mvc->timer->result(constant('BBN_MVC_ID'))['average'] * 1000),
       ],
       [
-        'id' => BBN_MVC_ID
+        'id' => constant('BBN_MVC_ID')
       ]
     );
   }
+
 })($installer ?? null);

@@ -273,9 +273,9 @@ and put it in the public root of your web server and call it from your browser.
   include_once(constant('BBN_LIB_PATH') . 'autoload.php');
 
   /** @var bool If set to true will log execution timings of the router */
-  $timings = (bool)(defined('BBN_TIMINGS') && constant('BBN_TIMINGS'));
+  $timer = (bool)(defined('BBN_TIMER') && constant('BBN_TIMER'));
   // If timing
-  if ($timings) {
+  if ($timer) {
     $chrono = new bbn\Util\Timer();
     $chrono->start();
   }
@@ -306,7 +306,7 @@ and put it in the public root of your web server and call it from your browser.
     $cache->set('cfg_files', $cfg_files, 600);
   }
 
-  if ($timings) {
+  if ($timer) {
     bbn\X::log(['config file', $chrono->measure()], 'timings');
   }
 
@@ -351,7 +351,7 @@ and put it in the public root of your web server and call it from your browser.
     $bbn->dbs = [&$bbn->db];
   }
 
-  if ($timings) {
+  if ($timer) {
     bbn\X::log(['DB', $chrono->measure()], 'timings');
   }
 
@@ -363,7 +363,7 @@ and put it in the public root of your web server and call it from your browser.
     }
   }
 
-  if ($timings) {
+  if ($timer) {
     bbn\X::log(['MVC', $chrono->measure()], 'timings');
   }
 
@@ -468,7 +468,7 @@ and put it in the public root of your web server and call it from your browser.
     }
   }
 
-  if ($timings) {
+  if ($timer) {
     bbn\X::log(['All set up', $chrono->measure()], 'timings');
   }
 
@@ -502,14 +502,14 @@ and put it in the public root of your web server and call it from your browser.
 
   // Routing
   if ($bbn->mvc->check()) {
-    if ($timings) {
+    if ($timer) {
       bbn\X::log(['checked', $chrono->measure()], 'timings');
     }
 
     // Executing
     $bbn->mvc->process();
 
-    if ($timings) {
+    if ($timer) {
       bbn\X::log(['processed', $chrono->measure()], 'timings');
     }
 
@@ -521,7 +521,7 @@ and put it in the public root of your web server and call it from your browser.
       include_once 'cfg/custom3.php';
     }
 
-    if ($timings) {
+    if ($timer) {
       bbn\X::log(['custom 3', $chrono->measure()], 'timings');
     }
   }
@@ -533,15 +533,15 @@ and put it in the public root of your web server and call it from your browser.
   // Outputs the result
   $bbn->mvc->output();
 
-  if ($timings) {
+  if ($timer) {
     bbn\X::log(['output', $chrono->measure()], 'timings');
   }
 
-  if (defined("BBN_MVC_ID") && isset($bbn->db, $bbn->mvc->inc->timer)) {
+  if (defined("BBN_MVC_ID") && isset($bbn->db, $bbn->mvc->timer)) {
     $bbn->db->update(
       'bbn_mvc_logs',
       [
-        'duration' => round($bbn->mvc->inc->timer->stop(BBN_MVC_ID) * 1000),
+        'duration' => round($bbn->mvc->timer->stop(BBN_MVC_ID) * 1000),
       ],
       [
         'id' => BBN_MVC_ID
