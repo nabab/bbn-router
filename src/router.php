@@ -445,7 +445,7 @@ and put it in the public root of your web server and call it from your browser.
       if ($cfg_files['custom2']) {
         include_once 'cfg/custom2.php';
       }
-    } elseif (defined('BBN_PREFERENCES') && ($userCls = constant('BBN_USER')) && defined('BBN_EXTERNAL_USER_ID')) {
+    } elseif (defined('BBN_PREFERENCES') && ($prefCls = constant('BBN_PREFERENCES')) && ($userCls = constant('BBN_USER')) && defined('BBN_EXTERNAL_USER_ID')) {
       // Setting up user
       $userCls = is_string($userCls) && class_exists($userCls) ? $userCls : '\\bbn\\User';
       $bbn->mvc->addInc(
