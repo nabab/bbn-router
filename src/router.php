@@ -406,9 +406,18 @@ and put it in the public root of your web server and call it from your browser.
       }
 
       if (defined('BBN_USER') && ($userCls = constant('BBN_USER'))) {
+        if (session_id()) {
+          throw new Exception('A session is already started, impossible to start another one');
+        }
+
         $sessCls = defined('BBN_SESSION') ? constant('BBN_SESSION') : '\\bbn\\User\\Session';
-        if (!session_id() && defined("BBN_NO_REDIS")) {
+        if (defined("BBN_NO_REDIS") && constant('BBN_NO_REDIS')) {
           session_save_path($bbn->mvc->tmpPath() . 'sessions');
+        }
+        else {
+          ini_set('session.save_handler', 'redis');
+          $host = defined('BBN_CACHE_HOST') ? constant('BBN_CACHE_HOST') : 'redis';
+          ini_set('session.save_path', 'tcp://' . $host . ':6379?database=2&prefix=PHPSESSID:');
         }
 
         $bbn->session = new $sessCls($defaults);
