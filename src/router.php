@@ -549,12 +549,12 @@ and put it in the public root of your web server and call it from your browser.
     bbn\X::log(['output', $chrono->measure()], 'timings');
   }
 
-  if (defined("BBN_MVC_ID") && isset($bbn->db, $bbn->mvc->timer)) {
-    //bbn\X::ddump($bbn->mvc->timer->hasStarted(constant('BBN_MVC_ID')), $bbn->mvc->timer->results(), constant('BBN_MVC_ID'));
+  if (defined("BBN_MVC_ID") && isset($bbn->db)) {
+    //bbn\X::ddump($bbn->mvc->getTimer()->hasStarted(constant('BBN_MVC_ID')), $bbn->mvc->getTimer()->results(), constant('BBN_MVC_ID'));
     $bbn->db->update(
       'bbn_mvc_logs',
       [
-        'duration' => round($bbn->mvc->timer->result(constant('BBN_MVC_ID'))['average'] * 1000),
+        'duration' => round($bbn->mvc->getTimer()->result(constant('BBN_MVC_ID'))['average'] * 1000),
       ],
       [
         'id' => constant('BBN_MVC_ID')

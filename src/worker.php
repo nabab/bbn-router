@@ -537,11 +537,11 @@ and put it in the public root of your web server and call it from your browser.
     bbn\X::log(['output', $chrono->measure()], 'timings');
   }
 
-  if (defined("BBN_MVC_ID") && isset($bbn->db, $bbn->mvc->timer)) {
+  if (defined("BBN_MVC_ID") && isset($bbn->db, $bbn->mvc->getTimer())) {
     $bbn->db->update(
       'bbn_mvc_logs',
       [
-        'duration' => round($bbn->mvc->timer->stop(BBN_MVC_ID) * 1000),
+        'duration' => round($bbn->mvc->getTimer()->stop(BBN_MVC_ID) * 1000),
       ],
       [
         'id' => BBN_MVC_ID
