@@ -554,7 +554,7 @@ and put it in the public root of your web server and call it from your browser.
     $bbn->db->update(
       'bbn_mvc_logs',
       [
-        'duration' => round($bbn->mvc->getTimer()->result(constant('BBN_MVC_ID'))['average'] * 1000),
+        'duration' => round((method_exists($bbn->mvc, 'getTimer') ? $bbn->mvc->getTimer()->result(constant('BBN_MVC_ID'))['average'] : $bbn->mvc->timer->result(constant('BBN_MVC_ID'))['average']) * 1000),
       ],
       [
         'id' => constant('BBN_MVC_ID')
