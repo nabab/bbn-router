@@ -2,7 +2,19 @@ composer.phar
 /vendor/
 .history
 .vscode
-
-# Commit your application's lock file https://getcomposer.org/doc/01-basic-usage.md#commit-your-composer-lock-file-to-version-control
-# You may choose to ignore a library lock file http://getcomposer.org/doc/02-libraries.md#lock-file
-# composer.lock
+.idea/
+_DS_STORE*
+.DS_Store
+._.DS_Store
+doc/*
+docs/*
+build/*
+[core]
+filemode = false
+*.* text eol=lf
+.phpunit.result.cache
+.php_cs.cache
+.env
+composer.lock
+.phpunit.cache/
+json-doc copy
