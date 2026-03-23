@@ -1,5 +1,4 @@
 <?php
-
 /**
  * This file deals with all the requests (users and API calls).
  *
@@ -20,21 +19,18 @@
  * @see       http://pear.php.net/package/PackageName
  * @see        mvc
  */
-(function ($installer) {
-
-  /** @todo Not sure why... */
-  @ini_set('zlib.output_compression', 'off');
-  /** The only/main object */
+/** The only/main object */
+return (function() {
   $bbn = new stdClass();
   $bbn->is_cli = php_sapi_name() === 'cli';
   $errorFn = function ($msg) use (&$bbn) {
     $st = sprintf('
-The following error occurred: %s.
+  The following error occurred: %s.
 
-In order to repair or redo your installation you need to download the following script:
-<a href="https://app-ui.com/download/bbn-install.php">bbn-install.php</a>
-and put it in the public root of your web server and call it from your browser.
-', $msg);
+  In order to repair or redo your installation you need to download the following script:
+  <a href="https://app-ui.com/download/bbn-install.php">bbn-install.php</a>
+  and put it in the public root of your web server and call it from your browser.
+  ', $msg);
     if ($bbn->is_cli) {
       die($st);
     }
@@ -177,12 +173,20 @@ and put it in the public root of your web server and call it from your browser.
       }
     }
 
+    $cfg['files'] = [
+      'custom1' => file_exists('cfg/custom1.php'),
+      'custom2' => file_exists('cfg/custom2.php'),
+      'custom3' => file_exists('cfg/custom3.php'),
+      'session' => file_exists('cfg/session.json'),
+      'end' => file_exists('cfg/end.php')
+    ];
+
     file_put_contents('.bbn', json_encode(['time' => time(), 'data' => $cfg], JSON_PRETTY_PRINT));
   }
 
   // Each value in thew array will define a constant with prefix BBN_
   foreach ($cfg as $n => $c) {
-    if ($n === 'spec') {
+    if (($n === 'spec') || is_array($c)) {
       continue;
     }
 
@@ -224,7 +228,6 @@ and put it in the public root of your web server and call it from your browser.
   }
 
   define('BBN_URL', $url);
-
 
   // If the server name is different the request is redirected
   if (!$bbn->is_cli && ($_SERVER['SERVER_NAME'] !== constant('BBN_SERVER_NAME'))) {
@@ -272,14 +275,6 @@ and put it in the public root of your web server and call it from your browser.
 
   include_once(constant('BBN_LIB_PATH') . 'autoload.php');
 
-  /** @var bool If set to true will log execution timings of the router */
-  $timer = (bool)(defined('BBN_TIMER') && constant('BBN_TIMER'));
-  // If timing
-  if ($timer) {
-    $chrono = new bbn\Util\Timer();
-    $chrono->start();
-  }
-
   // This application is in utf8
   mb_internal_encoding('UTF-8');
 
@@ -290,26 +285,6 @@ and put it in the public root of your web server and call it from your browser.
 
   /** @var bbn\Cache The cache engine */
   $cache = bbn\Cache::getEngine();
-
-  bbn\X::ddump($cfg);
-  // Setting the custom files presence in cache
-  if ($cache_cfg = $cache->get('cfg_files')) {
-    $cfg_files = $cache_cfg;
-  } else {
-    $cfg_files = [
-      'custom1' => file_exists('cfg/custom1.php'),
-      'custom2' => file_exists('cfg/custom2.php'),
-      'custom3' => file_exists('cfg/custom3.php'),
-      'session' => file_exists('cfg/session.json'),
-      'end' => file_exists('cfg/end.php')
-    ];
-    $cache->set('cfg_files', $cfg_files, 600);
-  }
-
-  if ($timer) {
-    bbn\X::log(['config file', $chrono->measure()], 'timings');
-  }
-
   /** @todo default session info, I don't see the point */
   $bbn->vars = [
     'default_session' => [
@@ -337,215 +312,27 @@ and put it in the public root of your web server and call it from your browser.
 
   define('BBN_DEFAULT_PATH', !empty($routes['default']) ? $routes['default'] : '');
 
-  if ($installer && file_exists('cfg/init.php')) {
-    include_once 'cfg/init.php';
-  }
-
+  /** @todo default session info, I don't see the point */
   if (!defined('BBN_DATABASE')) {
     // No database
     $bbn->db = false;
     $bbn->dbs = [];
   } else {
     // Database
-    $bbn->db = new bbn\Db();
+    try {
+      $bbn->db = new bbn\Db();
+    }
+    catch (Exception $e) {
+      sleep(3);
+      try {
+        $bbn->db = new bbn\Db();
+      }
+      catch (Exception $e) {
+        bbn\X::logException($e);
+        $errorFn('Impossible to connect to the database, check your configuration and your database server.');
+      }
+    }
     $bbn->dbs = [&$bbn->db];
   }
-
-  if ($timer) {
-    bbn\X::log(['DB', $chrono->measure()], 'timings');
-  }
-
-  $bbn->mvc = new bbn\Mvc($bbn->db, $routes);
-
-  foreach ($routes['root'] as $url => $plugin) {
-    if (!empty($plugin['static'])) {
-      $bbn->mvc->addStaticRoute(...array_map(fn($a): string => $url . '/' . $a, $plugin['static']));
-    }
-  }
-
-  if ($timer) {
-    bbn\X::log(['MVC', $chrono->measure()], 'timings');
-  }
-
-  /** @todo Make it depend of a constant from settings */
-  bbn\Mvc::setDbInController(true);
-
-  // The current PID, is it unique?
-  define('BBN_PID', getmypid());
-
-  define('BBN_REQUEST_PATH', $bbn->mvc->getRequest());
-
-  // Setting up options
-  if (defined('BBN_OPTIONS') && ($optCls = constant('BBN_OPTIONS'))) {
-    $optCls = is_string($optCls) && class_exists($optCls) ? $optCls : '\\bbn\\Appui\\Option';
-    $bbn->mvc->addInc(
-      'options',
-      new $optCls($bbn->db)
-    );
-  }
-
-
-  // Loading users scripts before session is set (but it is started)
-  if ($cfg_files['custom1']) {
-    include_once 'cfg/custom1.php';
-  }
-
-  // CLI
-  define('BBN_IS_STATIC_ROUTE', $bbn->mvc->isStaticRoute(BBN_REQUEST_PATH));
-  if (!BBN_IS_STATIC_ROUTE) {
-    if (!$bbn->is_cli) {
-      if ($cfg_files['session']) {
-        $default = file_get_contents('cfg/session.json');
-        if ($default && ($default = json_decode($default, true))) {
-          $defaults = array_merge($bbn->vars['default_session'], $default);
-        }
-      }
-
-      if (empty($defaults)) {
-        $defaults = $bbn->vars['default_session'];
-      }
-
-      if (defined('BBN_USER') && ($userCls = constant('BBN_USER'))) {
-        $sessCls = defined('BBN_SESSION') ? constant('BBN_SESSION') : '\\bbn\\User\\Session';
-        if (!session_id()/* && defined("BBN_NO_REDIS")*/) {
-          session_save_path($bbn->mvc->tmpPath() . 'sessions');
-        }
-
-        $bbn->session = new $sessCls($defaults);
-        $bbn->mvc->addInc('session', $bbn->session);
-        $userCls = is_string($userCls) && class_exists($userCls) ? $userCls : '\\bbn\\User';
-        $bbn->mvc->addInc(
-          'user',
-          new $userCls(
-            $bbn->db,
-            $bbn->mvc->getPost()
-          )
-        );
-
-        if (defined('BBN_PREFERENCES') && ($prefCls = constant('BBN_PREFERENCES'))) {
-          $prefCls = is_string($prefCls) && class_exists($prefCls) ? $prefCls : '\\bbn\\User\\Preferences';
-          $bbn->mvc->addInc('pref', new $prefCls($bbn->db));
-        }
-
-        if (defined('BBN_PERMISSIONS') && ($permCls = constant('BBN_PERMISSIONS'))) {
-          $permCls = is_string($permCls) && class_exists($permCls) ? $permCls : '\\bbn\\User\\Permissions';
-          $bbn->mvc->addInc('perm', new $permCls($routes));
-        }
-
-        if (defined('BBN_HISTORY') && ($histCls = constant('BBN_HISTORY'))) {
-          $histCls = is_string($histCls) && class_exists($histCls) ? $histCls : '\\bbn\\Appui\\History';
-          $histCls::init(
-            $bbn->db,
-            // User
-            ['user' => $bbn->mvc->inc->user->getId() ?: (defined('BBN_EXTERNAL_USER_ID') ? constant('BBN_EXTERNAL_USER_ID') : null)],
-          );
-        }
-      }
-
-      if ($cfg_files['custom2']) {
-        include_once 'cfg/custom2.php';
-      }
-    }
-    elseif (defined('BBN_PREFERENCES') && ($userCls = constant('BBN_USER')) && defined('BBN_EXTERNAL_USER_ID')) {
-      // Setting up user
-      $userCls = is_string($userCls) && class_exists($userCls) ? $userCls : '\\bbn\\User';
-      $bbn->mvc->addInc(
-        'user',
-        new $userCls(
-          $bbn->db,
-          ['id' => BBN_EXTERNAL_USER_ID]
-        )
-      );
-      // Setting up history
-      if (defined('BBN_HISTORY') && ($histCls = constant('BBN_HISTORY'))) {
-        $histCls = is_string($histCls) && class_exists($histCls) ? $histCls : '\\bbn\\Appui\\History';
-        $histCls::init(
-          $bbn->db,
-          // User adhérent
-          ['user' => BBN_EXTERNAL_USER_ID]
-        );
-      }
-    }
-  }
-
-  if ($timer) {
-    bbn\X::log(['All set up', $chrono->measure()], 'timings');
-  }
-
-
-
-  if (constant('BBN_IS_DEV')) {
-    set_error_handler(function(int $errno, string $errstr) {
-      throw new \Exception($errstr, $errno);
-    }, E_WARNING);
-    set_error_handler('\\bbn\\X::logError', E_ALL|~E_WARNING);
-    set_exception_handler('\\bbn\\X::logException');
-    // Warning becomes exception in dev
-
-    // Adding profiling if true or is current url or starts like url if finishes with a *
-    /** @var bool Becomes profiler object if profiling is activated */
-    $profiler = false;
-    $prof = defined('BBN_PROFILING') ? constant('BBN_PROFILING') : false;
-    if (($prof === true)
-      || (is_string($prof)
-        && (($bbn->mvc->getUrl() === $prof)
-          || ((substr($prof, -1) === '*')
-            && (strpos($bbn->mvc->getUrl(), substr($prof, 0, -1)) === 0)
-          )
-        )
-      )
-    ) {
-      $profiler = new bbn\Appui\Profiler($bbn->db);
-      $profiler->start();
-    }
-  }
-
-  // Routing
-  if ($bbn->mvc->check()) {
-    if ($timer) {
-      bbn\X::log(['checked', $chrono->measure()], 'timings');
-    }
-
-    // Executing
-    $bbn->mvc->process();
-
-    if ($timer) {
-      bbn\X::log(['processed', $chrono->measure()], 'timings');
-    }
-
-    if ($bbn->is_cli) {
-      //file_put_contents(BBN_DATA_PATH.'cli.txt', "0");
-    }
-    /** @todo Why custom3 not in cli?? */
-    elseif ($cfg_files['custom3']) {
-      include_once 'cfg/custom3.php';
-    }
-
-    if ($timer) {
-      bbn\X::log(['custom 3', $chrono->measure()], 'timings');
-    }
-  }
-
-  if (!empty($profiler)) {
-    $profiler->finish($bbn->mvc);
-  }
-
-  // Outputs the result
-  $bbn->mvc->output();
-
-  if ($timer) {
-    bbn\X::log(['output', $chrono->measure()], 'timings');
-  }
-
-  if ($bbn->mvc->getConstant('mvc_id') && isset($bbn->db)) {
-    $bbn->db->update(
-      'bbn_mvc_logs',
-      [
-        'duration' => round($bbn->mvc->getTimer()->stop($bbn->mvc->getConstant('mvc_id')) * 1000),
-      ],
-      [
-        'id' => $bbn->mvc->getConstant('mvc_id')
-      ]
-    );
-  }
-})($installer ?? null);
+  return [$bbn, $routes, $cache, $cfg];
+})();
