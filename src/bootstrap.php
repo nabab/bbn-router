@@ -333,6 +333,7 @@ return (function() {
       }
     }
     $bbn->dbs = [&$bbn->db];
+    $bbn->db->setTimezone(constant('BBN_TIMEZONE'));
   }
   return [$bbn, $routes, $cache, $cfg];
 })();

@@ -35,6 +35,9 @@ $handler = static function() use (&$routes, &$bbn, &$cfg, &$chrono, &$timer): vo
       bbn\X::log('MVC exists', 'frankenrouter-run');
       return;
     }
+    if (isset($bbn->session)) {
+      $bbn->session->destruct();
+    }
 
     $bbn->mvc = new bbn\Mvc($bbn->db, $routes);
 
@@ -177,9 +180,6 @@ $handler = static function() use (&$routes, &$bbn, &$cfg, &$chrono, &$timer): vo
   }
   finally {
     if (isset($bbn->mvc)) {
-      if (isset($bbn->mvc->inc->session)) {
-        $bbn->mvc->inc->session->destruct();
-      }
       if (isset($bbn->mvc->inc->ent)) {
         $bbn->mvc->inc->ent->destruct();
       }
@@ -188,6 +188,10 @@ $handler = static function() use (&$routes, &$bbn, &$cfg, &$chrono, &$timer): vo
       unset($bbn->mvc);
     }
   
+    if (isset($bbn->session)) {
+      $bbn->session->destruct();
+    }
+
     gc_collect_cycles();
   }
 
