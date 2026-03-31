@@ -28,12 +28,27 @@ bbn\X::log('Frankenrouter loaded', 'frankenrouter');
 define('BBN_PID', getmypid());
 $workerId = bin2hex(random_bytes(3));
 bbn\X::log("Worker boot: PID=" . getmypid() . " workerId=$workerId", 'frankenrouter-run');
-
-$handler = static function() use (&$routes, &$bbn, &$cfg, &$chrono, &$timer): void {
+$lastExec = time();
+$handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec): void {
   try {
     if (isset($bbn->mvc)) {
       bbn\X::log('MVC exists', 'frankenrouter-run');
-      return;
+      exit(0);
+    }
+    if (!$bbn->db->check()) {
+      bbn\X::log('DB Down', 'frankenrouter-run');
+      exit(0);
+    }
+    $now = time();
+    if ($now - $lastExec > 3) {
+      try {
+        $bbn->db->query('SELECT 1');
+        $lastExec = $now;
+      }
+      catch (Exception $e) {
+        bbn\X::log('DB Down through real check', 'frankenrouter-run');
+        exit(0);
+      }
     }
     if (isset($bbn->session)) {
       $bbn->session->destruct();
@@ -180,8 +195,10 @@ $handler = static function() use (&$routes, &$bbn, &$cfg, &$chrono, &$timer): vo
   }
   finally {
     if (isset($bbn->mvc)) {
-      if (isset($bbn->mvc->inc->ent)) {
-        $bbn->mvc->inc->ent->destruct();
+      foreach (['ent', 'perm', 'pref', 'user', 'options'] as $key) {
+        if (isset($bbn->mvc->inc->$key)) {
+          $bbn->mvc->inc->$key->destruct();
+        }
       }
   
       $bbn->mvc->destruct();
@@ -190,6 +207,11 @@ $handler = static function() use (&$routes, &$bbn, &$cfg, &$chrono, &$timer): vo
   
     if (isset($bbn->session)) {
       $bbn->session->destruct();
+    }
+
+    if (isset($bbn->db)) {
+      $bbn->db->flush();
+      $bbn->db->startFancyStuff();
     }
 
     gc_collect_cycles();
