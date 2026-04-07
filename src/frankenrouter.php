@@ -40,14 +40,28 @@ $handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec): void {
       exit(0);
     }
     $now = time();
-    if ($now - $lastExec > 3) {
+    if (!isset($bbn->db)) {
+      $bbn->db = new bbn\Db();
+      $lastExec = $now;
+    }
+    elseif ($now - $lastExec > 3) {
       try {
         $bbn->db->query('SELECT 1');
         $lastExec = $now;
       }
       catch (Exception $e) {
         bbn\X::log('DB Down through real check', 'frankenrouter-run');
-        exit(0);
+        $bbn->db->flush();
+        $bbn->db->close();
+        $bbn->db = new bbn\Db();
+        try {
+          $bbn->db->query('SELECT 1');
+          $lastExec = $now;
+        }
+        catch (Exception $e) {
+          bbn\X::log('DB Down after reconnect', 'frankenrouter-run');
+          exit(0);
+        }
       }
     }
     if (isset($bbn->session)) {

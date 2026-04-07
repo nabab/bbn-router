@@ -316,7 +316,6 @@ return (function() {
   if (!defined('BBN_DATABASE')) {
     // No database
     $bbn->db = false;
-    $bbn->dbs = [];
   } else {
     // Database
     try {
@@ -332,7 +331,6 @@ return (function() {
         $errorFn('Impossible to connect to the database, check your configuration and your database server.');
       }
     }
-    $bbn->dbs = [&$bbn->db];
     $bbn->db->setTimezone(constant('BBN_TIMEZONE'));
   }
   return [$bbn, $routes, $cache, $cfg];
