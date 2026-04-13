@@ -41,6 +41,7 @@ $handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec): void {
     }
     $now = time();
     if (!isset($bbn->db)) {
+      /** @var bbn\Db */
       $bbn->db = new bbn\Db();
       $lastExec = $now;
     }
