@@ -29,23 +29,67 @@ define('BBN_PID', getmypid());
 $workerId = bin2hex(random_bytes(3));
 bbn\X::log("Worker boot: PID=" . getmypid() . " workerId=$workerId", 'frankenrouter-run');
 $lastExec = time();
-$handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec): void {
+$handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec, &$cache): void {
   try {
+    if (!is_file('cfg/.bbn/state.json')) {
+      bbn\X::log('State file not found', 'frankenrouter-run');
+      exit(0);
+    }
+
+    $stateJson = file_get_contents('cfg/.bbn/state.json');
+    $state = json_decode($stateJson, true);
+    if (empty($state)) {
+      bbn\X::log('State file is empty', 'frankenrouter-run');
+      exit(0);
+    }
+
+    if (defined('BBN_DATABASE') && empty($state['db'])) {
+      bbn\X::log('DB Down at start of request', 'frankenrouter-run');
+      exit("...");
+    }
+
+    if (empty($state['cache'])) {
+      bbn\X::log('Cache Down at start of request', 'frankenrouter-run');
+      exit("...");
+    }
+
     if (isset($bbn->mvc)) {
-      bbn\X::log('MVC exists', 'frankenrouter-run');
-      exit(0);
+      throw new Exception('MVC already set at start of request');
     }
-    if (!$bbn->db->check()) {
-      bbn\X::log('DB Down', 'frankenrouter-run');
-      exit(0);
-    }
+
     $now = time();
     if (!isset($bbn->db)) {
-      /** @var bbn\Db */
-      $bbn->db = new bbn\Db();
-      $lastExec = $now;
+      if (!defined('BBN_DATABASE')) {
+        // No database
+        $bbn->db = false;
+      } else {
+        $lastException = null;
+        // Database
+        try {
+          $bbn->db = new bbn\Db();
+        }
+        catch (Exception $e) {
+          for ($i = 0; $i < 10; $i++) {
+            sleep(1);
+            try {
+              $bbn->db = new bbn\Db();
+              break;
+            }
+            catch (Exception $e) {
+              $lastException = $e;
+              continue;
+            }
+          }
+        }
+
+        if (!$bbn->db) {
+          throw $lastException ?: new Exception('Database connection failed without exception');
+        }
+
+        $bbn->db->setTimezone(constant('BBN_TIMEZONE'));
+      }
     }
-    elseif ($now - $lastExec > 3) {
+    elseif ($bbn->db && ($now - $lastExec > 3)) {
       try {
         $bbn->db->query('SELECT 1');
         $lastExec = $now;
@@ -65,6 +109,7 @@ $handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec): void {
         }
       }
     }
+
     if (isset($bbn->session)) {
       $bbn->session->destruct();
     }

@@ -20,7 +20,9 @@
  * @see        mvc
  */
 /** The only/main object */
-return (function() {
+return (function(): array
+{
+  /** @var stdClass $bbn */
   $bbn = new stdClass();
   $bbn->is_cli = php_sapi_name() === 'cli';
   $errorFn = function ($msg) use (&$bbn) {
@@ -40,8 +42,14 @@ return (function() {
 
   $app_path = dirname(getcwd()) . '/';
   $hostname = gethostname();
-  if (is_file('.bbn')) {
-    $cFile = file_get_contents('.bbn');
+  $app_hash = md5($hostname.$app_path);
+  if (!is_dir('cfg/.bbn')) {
+    mkdir('cfg/.bbn', 0770, true);
+  }
+
+  $cJson = [];
+  if (file_exists('cfg/.bbn/' . $app_hash)) {
+    $cFile = file_get_contents('cfg/.bbn/' . $app_hash);
     try {
       $cJson = json_decode($cFile, true);
     }
@@ -55,6 +63,7 @@ return (function() {
 
     // Good environment
     if (!empty($cJson)
+        && !empty($cJson['data'])
         && ($cJson['data']['hostname'] === $hostname)
         && ($cJson['data']['app_path'] === $app_path)) {
           // Another process updates or time is not up
@@ -66,7 +75,7 @@ return (function() {
 
   if (!isset($cfg)) {
     $cJson['updating'] = true;
-    file_put_contents('.bbn', json_encode($cJson, JSON_PRETTY_PRINT));
+    file_put_contents('cfg/.bbn/' . $app_hash, json_encode($cJson, JSON_PRETTY_PRINT));
     /** @var string Current directory which MUST be the root of the project where the symlink to rhis file is located */
     // Parsing YAML environment's configuration
     if (
@@ -79,8 +88,7 @@ return (function() {
     }
     // Or parsing JSON environment's configuration
     elseif (
-      function_exists('json_decode')
-      && file_exists('cfg/environment.json')
+      file_exists('cfg/environment.json')
       && ($tmp = file_get_contents('cfg/environment.json'))
     ) {
       /** @var array ENvironment's configuration */
@@ -89,7 +97,7 @@ return (function() {
 
     // If no readable environment's configuration is found the app is not configured correctly
     if (empty($cfgs)) {
-      $errorFn("No environment files in $app_path    " . getcwd());
+      $errorFn("No environment files in $app_path " . getcwd(). " for $hostname");
     }
 
     /** @var string The hostname */
@@ -181,7 +189,7 @@ return (function() {
       'end' => file_exists('cfg/end.php')
     ];
 
-    file_put_contents('.bbn', json_encode(['time' => time(), 'data' => $cfg], JSON_PRETTY_PRINT));
+    file_put_contents('cfg/.bbn/' . $app_hash, json_encode(['time' => time(), 'data' => $cfg], JSON_PRETTY_PRINT));
   }
 
   // Each value in thew array will define a constant with prefix BBN_
@@ -299,8 +307,10 @@ return (function() {
 
   // Loading routes configuration
   if (function_exists('yaml_parse') && file_exists('cfg/routes.yml') && ($tmp = file_get_contents('cfg/routes.yml'))) {
+    /** @var array $routes */
     $routes = yaml_parse($tmp);
   } elseif (function_exists('json_decode') && file_exists('cfg/routes.json') && ($tmp = file_get_contents('cfg/routes.json'))) {
+    /** @var array $routes */
     $routes = json_decode($tmp, true);
   } else {
     throw new Exception('Impossible to read the configuration file (routes.json or routes.yml).');
@@ -313,25 +323,5 @@ return (function() {
   define('BBN_DEFAULT_PATH', !empty($routes['default']) ? $routes['default'] : '');
 
   /** @todo default session info, I don't see the point */
-  if (!defined('BBN_DATABASE')) {
-    // No database
-    $bbn->db = false;
-  } else {
-    // Database
-    try {
-      $bbn->db = new bbn\Db();
-    }
-    catch (Exception $e) {
-      sleep(3);
-      try {
-        $bbn->db = new bbn\Db();
-      }
-      catch (Exception $e) {
-        bbn\X::logException($e);
-        $errorFn('Impossible to connect to the database, check your configuration and your database server.');
-      }
-    }
-    $bbn->db->setTimezone(constant('BBN_TIMEZONE'));
-  }
   return [$bbn, $routes, $cache, $cfg];
 })();

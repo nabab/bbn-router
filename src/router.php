@@ -26,9 +26,47 @@ if (!isset($installer)) {
 
 (function ($installer) {
   [$bbn, $routes, $cache, $cfg] = include_once __DIR__.'/bootstrap.php';
+  if (!defined('BBN_DATABASE')) {
+    // No database
+    $bbn->db = false;
+  } else {
+    $lastException = null;
+    // Database
+    try {
+      $bbn->db = new bbn\Db();
+    }
+    catch (Exception $e) {
+      for ($i = 0; $i < 10; $i++) {
+        sleep(1);
+        try {
+          $bbn->db = new bbn\Db();
+          break;
+        }
+        catch (Exception $e) {
+          continue;
+        }
+      }
+      sleep(3);
+      try {
+        $bbn->db = new bbn\Db();
+      }
+      catch (Exception $e) {
+        bbn\X::logException($e);
+        $lastException = $e;
+      }
+    }
+
+    if (!$bbn->db) {
+      throw $lastException ?: new Exception('Database connection failed without exception');
+    }
+
+    $bbn->db->setTimezone(constant('BBN_TIMEZONE'));
+  }
+
   if ($installer && file_exists('cfg/init.php')) {
     include_once 'cfg/init.php';
   }
+
   $bbn->mvc = new bbn\Mvc($bbn->db, $routes);
 
   foreach ($routes['root'] as $url => $plugin) {
@@ -42,9 +80,6 @@ if (!isset($installer)) {
 
   // The current PID, is it unique?
   define('BBN_PID', getmypid());
-
-  define('BBN_REQUEST_PATH', $bbn->mvc->getRequest());
-
   // Setting up options
   if (defined('BBN_OPTIONS') && ($optCls = constant('BBN_OPTIONS'))) {
     $optCls = is_string($optCls) && class_exists($optCls) ? $optCls : '\\bbn\\Appui\\Option';
@@ -61,8 +96,7 @@ if (!isset($installer)) {
   }
 
   // CLI
-  define('BBN_IS_STATIC_ROUTE', $bbn->mvc->isStaticRoute(BBN_REQUEST_PATH));
-  if (!BBN_IS_STATIC_ROUTE) {
+  if (!$bbn->mvc->isStaticRoute($bbn->mvc->getRequest())) {
     if (!$bbn->is_cli) {
       if ($cfg['files']['session']) {
         $default = file_get_contents('cfg/session.json');
