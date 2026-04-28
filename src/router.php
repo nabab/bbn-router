@@ -25,7 +25,8 @@ if (!isset($installer)) {
 }
 
 (function ($installer) {
-  [$bbn, $routes, $cache, $cfg] = include_once __DIR__.'/bootstrap.php';
+  [$bbn, $routes, $cfg] = include_once __DIR__.'/bootstrap.php';
+  $cache = bbn\Cache::getEngine();
   if (!defined('BBN_DATABASE')) {
     // No database
     $bbn->db = false;

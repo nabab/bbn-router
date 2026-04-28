@@ -21,7 +21,7 @@
  * @see        mvc
  */
 
-[$bbn, $routes, $cache, $cfg] = include_once __DIR__.'/bootstrap.php';
+[$bbn, $routes, $cfg] = include_once __DIR__.'/bootstrap.php';
 /** @var stdClass $bbn */
 bbn\X::log('Frankenrouter loaded', 'frankenrouter');
 // The current PID, is it unique?
@@ -29,7 +29,7 @@ define('BBN_PID', getmypid());
 $workerId = bin2hex(random_bytes(3));
 bbn\X::log("Worker boot: PID=" . getmypid() . " workerId=$workerId", 'frankenrouter-run');
 $lastExec = time();
-$handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec, &$cache): void {
+$handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec): void {
   try {
     if (!is_file('cfg/.bbn/state.json')) {
       bbn\X::log('State file not found', 'frankenrouter-run');
@@ -57,6 +57,8 @@ $handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec, &$cache): 
       throw new Exception('MVC already set at start of request');
     }
 
+    /** @var bbn\Cache The cache engine */
+    $cache = bbn\Cache::getEngine();
     $now = time();
     if (!isset($bbn->db)) {
       if (!defined('BBN_DATABASE')) {
@@ -98,14 +100,28 @@ $handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec, &$cache): 
         bbn\X::log('DB Down through real check', 'frankenrouter-run');
         $bbn->db->flush();
         $bbn->db->close();
-        $bbn->db = new bbn\Db();
         try {
-          $bbn->db->query('SELECT 1');
-          $lastExec = $now;
+          $bbn->db = new bbn\Db();
         }
         catch (Exception $e) {
           bbn\X::log('DB Down after reconnect', 'frankenrouter-run');
+          $bbn->db->flush();
+          $bbn->db->close();
           exit(0);
+        }
+        if ($bbn->db) {
+          try {
+            $bbn->db->query('SELECT 1');
+            $lastExec = $now;
+          }
+          catch (Exception $e) {
+            bbn\X::log('DB Down after reconnect', 'frankenrouter-run');
+            $bbn->db->flush();
+            $bbn->db->close();
+            exit(0);
+          }
+
+          $bbn->db->setTimezone(constant('BBN_TIMEZONE'));
         }
       }
     }

@@ -291,8 +291,6 @@ return (function(): array
 
   ini_set('error_log', constant('BBN_DATA_PATH') . 'logs/_php_error.log');
 
-  /** @var bbn\Cache The cache engine */
-  $cache = bbn\Cache::getEngine();
   /** @todo default session info, I don't see the point */
   $bbn->vars = [
     'default_session' => [
@@ -323,5 +321,5 @@ return (function(): array
   define('BBN_DEFAULT_PATH', !empty($routes['default']) ? $routes['default'] : '');
 
   /** @todo default session info, I don't see the point */
-  return [$bbn, $routes, $cache, $cfg];
+  return [$bbn, $routes, $cfg];
 })();
