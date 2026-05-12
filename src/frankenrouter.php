@@ -29,6 +29,7 @@ define('BBN_PID', getmypid());
 $workerId = bin2hex(random_bytes(3));
 bbn\X::log("Worker boot: PID=" . getmypid() . " workerId=$workerId", 'frankenrouter-run');
 $lastExec = time();
+$currentUrl = null;
 $handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec): void {
   try {
     if (!is_file('cfg/.bbn/state.json')) {
