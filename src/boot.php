@@ -44,7 +44,7 @@ use bbn\Cache;
       // We set it in file just after
     }
 
-    if ($cache && $cache->check()) {
+    if ($cache && true) {
       if (!$state['cache']) {
         $state['cache'] = true;
         file_put_contents('cfg/.bbn/state.json', json_encode($state));
@@ -93,7 +93,6 @@ use bbn\Cache;
           try {
             $db = new bbn\Db();
             $db->rawQuery('SELECT 1');
-            $db->close();
             if (!$state['db']) {
               $state['db'] = true;
               file_put_contents('cfg/.bbn/state.json', json_encode($state));
@@ -103,6 +102,18 @@ use bbn\Cache;
           catch (Exception $e) {
             continue;
           }
+          finally {
+            if (isset($db)) {
+              $db->close();
+              unset($db);
+            }
+          }
+        }
+      }
+      finally {
+        if (isset($db)) {
+          $db->close();
+          unset($db);
         }
       }
   
