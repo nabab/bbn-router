@@ -101,6 +101,7 @@ $handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec): void {
         bbn\X::log('DB Down through real check', 'frankenrouter-run');
         $bbn->db->flush();
         $bbn->db->close();
+        $triggers = $bbn->db->getTriggers();
         try {
           $bbn->db = new bbn\Db();
         }
@@ -113,6 +114,7 @@ $handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec): void {
         if ($bbn->db) {
           try {
             $bbn->db->query('SELECT 1');
+            $bbn->db->setTriggers($triggers);
             $lastExec = $now;
           }
           catch (Exception $e) {
@@ -302,3 +304,5 @@ while (frankenphp_handle_request($handler)) {
   $i++;
   bbn\X::log("Request #{$i} handled by worker $workerId" , 'frankenrouter-run');
 }
+
+bbn\X::log("Worker $workerId PID=" . getmypid() . " exiting after handling $num requests", 'frankenrouter-run');
