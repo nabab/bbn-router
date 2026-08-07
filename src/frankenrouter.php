@@ -32,6 +32,7 @@ $lastExec = time();
 $currentUrl = null;
 $handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec): void {
   try {
+    bbn\X::log("Entered in the handler: PID=" . getmypid(), 'frankenrouter-run');
     if (!is_file('cfg/.bbn/state.json')) {
       bbn\X::log('State file not found', 'frankenrouter-run');
       exit(0);
@@ -59,7 +60,14 @@ $handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec): void {
     }
 
     /** @var bbn\Cache The cache engine */
-    $cache = bbn\Cache::getEngine();
+    try {
+      $cache = bbn\Cache::getEngine();
+    }
+    catch (Exception $e) {
+      bbn\X::log('Cache Down at start of request', 'frankenrouter-run');
+      exit("...");
+    }
+
     $now = time();
     if (!isset($bbn->db)) {
       if (!defined('BBN_DATABASE')) {
@@ -241,6 +249,7 @@ $handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec): void {
       }
     }
 
+    bbn\X::log("Before routing: PID=" . getmypid(), 'frankenrouter-run');
     // Routing
     if ($bbn->mvc->check()) {
       // Executing
@@ -277,6 +286,7 @@ $handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec): void {
       foreach (['ent', 'perm', 'pref', 'user', 'options'] as $key) {
         if (isset($bbn->mvc->inc->$key)) {
           $bbn->mvc->inc->$key->destruct();
+          $bbn->mvc->inc->$key = null;
         }
       }
   
@@ -297,7 +307,7 @@ $handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec): void {
   }
 
 };
-bbn\X::log('Worker PID boot: ' . getmypid(), 'frankenrouter-run');
+bbn\X::log('Frankenrouter PID boot: ' . getmypid(), 'frankenrouter-run');
 
 $i = 0;
 while (frankenphp_handle_request($handler)) {
@@ -305,4 +315,4 @@ while (frankenphp_handle_request($handler)) {
   bbn\X::log("Request #{$i} handled by worker $workerId" , 'frankenrouter-run');
 }
 
-bbn\X::log("Worker $workerId PID=" . getmypid() . " exiting after handling $num requests", 'frankenrouter-run');
+bbn\X::log("Worker $workerId PID=" . getmypid() . " exiting after handling $i requests", 'frankenrouter-run');

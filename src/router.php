@@ -26,7 +26,14 @@ if (!isset($installer)) {
 
 (function ($installer) {
   [$bbn, $routes, $cfg] = include_once __DIR__.'/bootstrap.php';
-  $cache = bbn\Cache::getEngine();
+  try {
+    $cache = bbn\Cache::getEngine();
+  }
+  catch (Exception $e) {
+    bbn\X::log('Cache Down at start of request', 'router-error');
+    exit("...");
+  }
+
   if (!defined('BBN_DATABASE')) {
     // No database
     $bbn->db = false;

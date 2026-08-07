@@ -320,6 +320,7 @@ return (function(): array
 
   define('BBN_DEFAULT_PATH', !empty($routes['default']) ? $routes['default'] : '');
 
+
   /** @todo default session info, I don't see the point */
   return [$bbn, $routes, $cfg];
 })();
