@@ -24,12 +24,14 @@ use bbn\Appui\Option;
       mkdir('cfg/.bbn', 0755, true);
     }
 
-    if (!file_exists('cfg/.bbn/state.json')) {
+    $fp = @fopen('cfg/.bbn/state.json', 'x');
+    if ($fp !== false) {
       $state = [
         'db' => false,
         'cache' => false
       ];
-      file_put_contents('cfg/.bbn/state.json', json_encode($state));
+      fwrite($fp, json_encode($state));
+      fclose($fp);
     }
     else {
       $stateJson = file_get_contents('cfg/.bbn/state.json');
