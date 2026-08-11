@@ -80,17 +80,8 @@ $handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec): void {
           $bbn->db = new bbn\Db();
         }
         catch (Exception $e) {
-          for ($i = 0; $i < 10; $i++) {
-            sleep(1);
-            try {
-              $bbn->db = new bbn\Db();
-              break;
-            }
-            catch (Exception $e) {
-              $lastException = $e;
-              continue;
-            }
-          }
+          unset($bbn->db);
+          $lastException = $e;
         }
 
         if (!$bbn->db) {
@@ -107,9 +98,10 @@ $handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec): void {
       }
       catch (Exception $e) {
         bbn\X::log('DB Down through real check', 'frankenrouter-run');
+        $triggers = $bbn->db->getTriggers();
         $bbn->db->flush();
         $bbn->db->close();
-        $triggers = $bbn->db->getTriggers();
+        unset($bbn->db);
         try {
           $bbn->db = new bbn\Db();
         }
@@ -129,6 +121,7 @@ $handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec): void {
             bbn\X::log('DB Down after reconnect', 'frankenrouter-run');
             $bbn->db->flush();
             $bbn->db->close();
+            unset($bbn->db);
             exit(0);
           }
 
