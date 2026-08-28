@@ -26,6 +26,14 @@ if (!isset($installer)) {
 
 (function ($installer) {
   [$bbn, $routes, $cfg] = include_once __DIR__.'/bootstrap.php';
+  $state = file_exists('cfg/.bbn/state.json') ? json_decode(file_get_contents('cfg/.bbn/state.json'), true) : [];
+  set_error_handler('\\bbn\\X::logError', E_ALL);
+  set_exception_handler('\\bbn\\X::logException');
+  while (empty($state['cache'])) {
+    usleep(100000); // Sleep for 0.1 second to avoid busy waiting
+    $state = file_exists('cfg/.bbn/state.json') ? json_decode(file_get_contents('cfg/.bbn/state.json'), true) : [];
+  }
+
   try {
     $cache = bbn\Cache::getEngine();
   }
@@ -191,11 +199,6 @@ if (!isset($installer)) {
   }
 
   if (constant('BBN_IS_DEV')) {
-    set_error_handler(function (int $errno, string $errstr) {
-      throw new \Exception($errstr, $errno);
-    }, E_WARNING);
-    set_error_handler('\\bbn\\X::logError', E_ALL | ~E_WARNING);
-    set_exception_handler('\\bbn\\X::logException');
     // Warning becomes exception in dev
 
     // Adding profiling if true or is current url or starts like url if finishes with a *

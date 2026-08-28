@@ -322,5 +322,6 @@ return (function(): array
 
 
   /** @todo default session info, I don't see the point */
+  //OpenSwoole\Coroutine::set(['hook_flags' => OpenSwoole\Runtime::HOOK_ALL]);
   return [$bbn, $routes, $cfg];
 })();

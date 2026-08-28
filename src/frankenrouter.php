@@ -21,13 +21,24 @@
  * @see        mvc
  */
 
+while (!is_file('cfg/.bbn/state.json')) {
+  sleep(1);
+}
+
+$stateJson = json_decode(file_get_contents('cfg/.bbn/state.json'), true);
+if (defined('BBN_DATABASE') && empty($stateJson['db'])) {
+  exit("Wait...");
+}
+
 [$bbn, $routes, $cfg] = include_once __DIR__.'/bootstrap.php';
+
+set_error_handler('\\bbn\\X::logError', E_ALL);
+set_exception_handler('\\bbn\\X::logException');
 /** @var stdClass $bbn */
 bbn\X::log('Frankenrouter loaded', 'frankenrouter');
 // The current PID, is it unique?
 define('BBN_PID', getmypid());
 $workerId = bin2hex(random_bytes(3));
-bbn\X::log("Worker boot: PID=" . getmypid() . " workerId=$workerId", 'frankenrouter-run');
 $lastExec = time();
 $currentUrl = null;
 $handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec): void {
@@ -35,19 +46,19 @@ $handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec): void {
     bbn\X::log("Entered in the handler: PID=" . getmypid(), 'frankenrouter-run');
     if (!is_file('cfg/.bbn/state.json')) {
       bbn\X::log('State file not found', 'frankenrouter-run');
-      exit(0);
+      exit("Wait...");
     }
 
     $stateJson = file_get_contents('cfg/.bbn/state.json');
     $state = json_decode($stateJson, true);
     if (empty($state)) {
       bbn\X::log('State file is empty', 'frankenrouter-run');
-      exit(0);
+      exit("Wait...");
     }
 
     if (defined('BBN_DATABASE') && empty($state['db'])) {
       bbn\X::log('DB Down at start of request', 'frankenrouter-run');
-      exit("...");
+      exit("Wait...");
     }
 
     if (empty($state['cache'])) {
@@ -73,7 +84,8 @@ $handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec): void {
       if (!defined('BBN_DATABASE')) {
         // No database
         $bbn->db = false;
-      } else {
+      }
+      else {
         $lastException = null;
         // Database
         try {
@@ -84,48 +96,29 @@ $handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec): void {
           $lastException = $e;
         }
 
-        if (!$bbn->db) {
+        if (!$bbn->db || !$bbn->db->check()) {
           throw $lastException ?: new Exception('Database connection failed without exception');
         }
 
         $bbn->db->setTimezone(constant('BBN_TIMEZONE'));
       }
     }
-    elseif ($bbn->db && ($now - $lastExec > 3)) {
-      try {
-        $bbn->db->query('SELECT 1');
+    elseif ($bbn->db && $bbn->db->check() && ($now - $lastExec > 10)) {
+      if ($bbn->db->ping()) {
         $lastExec = $now;
       }
-      catch (Exception $e) {
-        bbn\X::log('DB Down through real check', 'frankenrouter-run');
-        $triggers = $bbn->db->getTriggers();
-        $bbn->db->flush();
-        $bbn->db->close();
-        unset($bbn->db);
-        try {
-          $bbn->db = new bbn\Db();
-        }
-        catch (Exception $e) {
+      else {
+        $bbn->db->reconnect();
+        if (!$bbn->db->check() || !$bbn->db->ping()) {
           bbn\X::log('DB Down after reconnect', 'frankenrouter-run');
           $bbn->db->flush();
           $bbn->db->close();
+          unset($bbn->db);
           exit(0);
         }
-        if ($bbn->db) {
-          try {
-            $bbn->db->query('SELECT 1');
-            $bbn->db->setTriggers($triggers);
-            $lastExec = $now;
-          }
-          catch (Exception $e) {
-            bbn\X::log('DB Down after reconnect', 'frankenrouter-run');
-            $bbn->db->flush();
-            $bbn->db->close();
-            unset($bbn->db);
-            exit(0);
-          }
-
+        else {
           $bbn->db->setTimezone(constant('BBN_TIMEZONE'));
+          $lastExec = $now;
         }
       }
     }
@@ -160,6 +153,11 @@ $handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec): void {
       include_once 'cfg/custom1.php';
     }
 
+
+    if (!$bbn->db->check()) {
+      bbn\X::log('DB Down at start of request', 'frankenrouter-run');
+      exit(0);
+    }
     // CLI
     if (!$bbn->mvc->isStaticRoute()) {
       if ($cfg['files']['session']) {
@@ -177,6 +175,10 @@ $handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec): void {
         $sessCls = defined('BBN_SESSION') ? constant('BBN_SESSION') : '\\bbn\\User\\Session';
         if (!session_id() && defined("BBN_NO_REDIS")) {
           session_save_path($bbn->mvc->tmpPath() . 'sessions');
+        }
+
+        if (isset($bbn->session)) {
+          $bbn->session->destruct();
         }
 
         $bbn->session = new $sessCls($defaults);
@@ -216,12 +218,6 @@ $handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec): void {
     }
 
     if (constant('BBN_IS_DEV')) {
-      /*
-      set_error_handler(function(int $errno, string $errstr) {
-        throw new \Exception($errstr, $errno);
-      }, E_WARNING);
-      set_error_handler('\\bbn\\X::logError', E_ALL|~E_WARNING);
-      set_exception_handler('\\bbn\\X::logException');
       // Warning becomes exception in dev
 
       // Adding profiling if true or is current url or starts like url if finishes with a *
@@ -293,7 +289,6 @@ $handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec): void {
 
     if (isset($bbn->db)) {
       $bbn->db->flush();
-      $bbn->db->startFancyStuff();
     }
 
     gc_collect_cycles();
@@ -303,6 +298,7 @@ $handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec): void {
 bbn\X::log('Frankenrouter PID boot: ' . getmypid(), 'frankenrouter-run');
 
 $i = 0;
+
 while (frankenphp_handle_request($handler)) {
   $i++;
   bbn\X::log("Request #{$i} handled by worker $workerId" , 'frankenrouter-run');
