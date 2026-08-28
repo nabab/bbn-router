@@ -6,6 +6,8 @@ use bbn\Db;
 use bbn\Cron;
 use bbn\Appui\Option;
 
+set_time_limit(0);
+
 (function() {
     /**
      * @var stdClass $bbn
@@ -62,10 +64,12 @@ use bbn\Appui\Option;
             X::log('loop: loaded existing state.json', 'boot');
         }
 
-        $cache = false;
         try {
             /** @var Cache The cache engine */
-            $cache = Cache::getEngine();
+            if (empty($cache)) {
+              $cache = new Cache();
+            }
+
             if (!$cache->getObj()) {
                 $cache = false;
                 X::log('loop: cache engine returned no object', 'boot');
@@ -100,7 +104,7 @@ use bbn\Appui\Option;
             for ($i = 0; $i < 30; $i++) {
                 try {
                     /** @var Cache The cache engine */
-                    $cache = Cache::getEngine();
+                    $cache = new Cache();
                     if ($cache->getObj()) {
                         X::log("loop: retry $i succeeded, cache connected", 'boot');
                         if (!$stateFile['cache']) {
@@ -280,17 +284,12 @@ use bbn\Appui\Option;
                     X::log('boot: $cron is null/falsy despite db/cache being up', 'boot');
                 }
 
-                sleep(10);
             } else {
                 X::log('Database and cache are not up nor running for process ' . getmypid(), 'socket-start');
                 X::log("boot: state db=" . var_export($state['db'], true) . " cache=" . var_export($state['cache'], true), 'boot');
-                sleep(3);
             }
         } else {
             X::log('boot: skipping DB block. cache=' . var_export($state['cache'], true) . ', BBN_DATABASE defined=' . (defined('BBN_DATABASE') ? 'yes' : 'no'), 'boot');
         }
-
-        //echo "Finished cycle" . PHP_EOL;
-        sleep(1);
     }
 })();
