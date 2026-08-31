@@ -199,103 +199,86 @@ set_time_limit(0);
                     }
                 }
             }
+        }
 
-            if ($state['db'] && $state['cache']) {
-                X::log('loop: both DB and cache are up', 'boot');
-                
-                if ($cron) {
-                    // First go
-                    if (!$socketLaunched) {
-                        X::log('about to launch socket', 'socket-start');
-                        
-                        $pidPath = dirname($cron->getPidPath(['type' => 'cron']));
-                        foreach (glob($pidPath . '/*.pid') as $file) {
-                            if (is_file($file)) {
-                                unlink($file);
-                            }
-                        }
-                        
-                        X::log('boot: launching socket server', 'boot');
-                        $cron->launchSocketServer();
-                        $socketLaunched = true;
-                        X::log('boot: socket server launched', 'boot');
-                    }
-
-                    $has_active = is_file($cron->getStatusPath('active'));
-                    $has_cron = is_file($cron->getStatusPath('cron'));
-                    $has_poll = is_file($cron->getStatusPath('poll'));
-                    $crontime = false;
-                    $cronid = false;
-                    $polltime = false;
-                    $pollid = false;
-
-                    X::log([
-                        'has_active' => $has_active,
-                        'has_cron' => $has_cron,
-                        'has_poll' => $has_poll,
-                        'crontime' => $crontime,
-                        'cronid' => $cronid,
-                        'polltime' => $polltime,
-                        'pollid' => $pollid,
-                        'cronfile' => $cron->getPidPath(['type' => 'cron']),
-                        'pollfile' => $cron->getPidPath(['type' => 'poll']),
-                        'pidcronfile' => is_file($cron->getPidPath(['type' => 'cron'])),
-                        'pidpollfile' => is_file($cron->getPidPath(['type' => 'poll']))
-                    ], 'worker');
-
-                    if (
-                        $has_cron
-                        && ($cronfile = $cron->getPidPath(['type' => 'cron']))
-                        && is_file($cronfile)
-                    ) {
-                        [$cronid, $crontime] = explode('|', file_get_contents($cronfile));
-                        if (!file_exists('/proc/' . $cronid)) {
-                            unlink($cronfile);
-                            $crontime = false;
-                            $cronid = false;
-                            X::log('boot: removed stale cron pid file', 'boot');
+        if ($state['db'] && $state['cache']) {
+            if ($cron) {
+                // First go
+                if (!$socketLaunched) {
+                    X::log('about to launch socket', 'socket-start');
+                    
+                    $pidPath = dirname($cron->getPidPath(['type' => 'cron']));
+                    foreach (glob($pidPath . '/*.pid') as $file) {
+                        if (is_file($file)) {
+                            unlink($file);
                         }
                     }
+                    
+                    X::log('boot: launching socket server', 'boot');
+                    $cron->launchSocketServer();
+                    $socketLaunched = true;
+                    X::log('boot: socket server launched', 'boot');
+                }
 
-                    if (
-                        $has_poll
-                        && ($pollfile = $cron->getPidPath(['type' => 'poll']))
-                        && is_file($pollfile)
-                    ) {
-                        [$pollid, $polltime] = explode('|', file_get_contents($pollfile));
-                        if (!file_exists('/proc/' . $pollid)) {
-                            unlink($pollfile);
-                            $polltime = false;
-                            $pollid = false;
-                            X::log('boot: removed stale poll pid file', 'boot');
-                        }
+                $has_active = is_file($cron->getStatusPath('active'));
+                $has_cron = is_file($cron->getStatusPath('cron'));
+                $has_poll = is_file($cron->getStatusPath('poll'));
+                $crontime = false;
+                $cronid = false;
+                $polltime = false;
+                $pollid = false;
+
+
+                if (
+                    $has_cron
+                    && ($cronfile = $cron->getPidPath(['type' => 'cron']))
+                    && is_file($cronfile)
+                ) {
+                    [$cronid, $crontime] = explode('|', file_get_contents($cronfile));
+                    if (!file_exists('/proc/' . $cronid)) {
+                        unlink($cronfile);
+                        $crontime = false;
+                        $cronid = false;
+                        X::log('boot: removed stale cron pid file', 'boot');
                     }
+                }
 
-                    if ($has_active) {
-                        if ($has_poll && !$pollid) {
-                            X::log('boot: launching poll', 'boot');
-                            $cron->launchPoll();
-                            $polltime = time();
-                        }
-                        if ($has_cron && !$cronid) {
-                            X::log('boot: launching task system (cron)', 'boot');
-                            $cron->launchTaskSystem();
-                            $crontime = time();
-                        }
-                    } else {
-                        X::log('boot: no active status file, skipping launch', 'boot');
+                if (
+                    $has_poll
+                    && ($pollfile = $cron->getPidPath(['type' => 'poll']))
+                    && is_file($pollfile)
+                ) {
+                    [$pollid, $polltime] = explode('|', file_get_contents($pollfile));
+                    if (!file_exists('/proc/' . $pollid)) {
+                        unlink($pollfile);
+                        $polltime = false;
+                        $pollid = false;
+                        X::log('boot: removed stale poll pid file', 'boot');
                     }
+                }
 
+                if ($has_active) {
+                    if ($has_poll && !$pollid) {
+                        X::log('boot: launching poll', 'boot');
+                        $cron->launchPoll();
+                        $polltime = time();
+                    }
+                    if ($has_cron && !$cronid) {
+                        X::log('boot: launching task system (cron)', 'boot');
+                        $cron->launchTaskSystem();
+                        $crontime = time();
+                    }
                 } else {
-                    X::log('No cron object for process ' . getmypid(), 'worker');
-                    X::log('boot: $cron is null/falsy despite db/cache being up', 'boot');
+                    X::log('boot: no active status file, skipping launch', 'boot');
                 }
 
             } else {
-                X::log('Database and cache are not up nor running for process ' . getmypid(), 'socket-start');
-                X::log("boot: state db=" . var_export($state['db'], true) . " cache=" . var_export($state['cache'], true), 'boot');
+                X::log('No cron object for process ' . getmypid(), 'worker');
+                X::log('boot: $cron is null/falsy despite db/cache being up', 'boot');
             }
-        } else {
+
+        }
+        else {
             X::log('boot: skipping DB block. cache=' . var_export($state['cache'], true) . ', BBN_DATABASE defined=' . (defined('BBN_DATABASE') ? 'yes' : 'no'), 'boot');
         }
 
