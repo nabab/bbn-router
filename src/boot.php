@@ -47,6 +47,7 @@ set_time_limit(0);
         'db' => false,
         'cache' => false
     ];
+    $num = 0;
     while (true) {
         //X::log('loop: start iteration', 'boot');
         if (!$state['cache']) {
@@ -202,9 +203,11 @@ set_time_limit(0);
         }
 
         if ($state['db'] && $state['cache']) {
+            X::log('loop: both DB and cache are up', 'boot');
+            
             if ($cron) {
                 // First go
-                if (!$socketLaunched) {
+                if (!$socketLaunched && ($num > 10)) {
                     X::log('about to launch socket', 'socket-start');
                     
                     $pidPath = dirname($cron->getPidPath(['type' => 'cron']));
@@ -283,5 +286,6 @@ set_time_limit(0);
         }
 
         sleep(1);
+        $num++;
     }
 })();
