@@ -41,43 +41,50 @@ set_time_limit(0);
         X::log('boot: removed _php_error.lock', 'boot');
     }
 
+    $cache = false;
+    $db = false;
+    $state = [
+        'db' => false,
+        'cache' => false
+    ];
     while (true) {
-        X::log('loop: start iteration', 'boot');
-        
-        $fp = @fopen('cfg/.bbn/state.json', 'x');
-        if ($fp !== false) {
-            $state = [
-                'db' => false,
-                'cache' => false
-            ];
-            $stateFile = $state;
-            fwrite($fp, json_encode($stateFile));
-            fclose($fp);
-            X::log('loop: created new state.json', 'boot');
-        } else {
-            $stateJson = file_get_contents('cfg/.bbn/state.json');
-            $stateFile = json_decode($stateJson, true);
-            $state = [
-                'db' => false,
-                'cache' => false
-            ];
-            X::log('loop: loaded existing state.json', 'boot');
-        }
-
-        try {
-            /** @var Cache The cache engine */
-            if (empty($cache)) {
-              $cache = new Cache();
-            }
-
-            if (!$cache->getObj()) {
-                $cache = false;
-                X::log('loop: cache engine returned no object', 'boot');
+        //X::log('loop: start iteration', 'boot');
+        if (!$state['cache']) {
+            $fp = @fopen('cfg/.bbn/state.json', 'x');
+            if ($fp !== false) {
+                $state = [
+                    'db' => false,
+                    'cache' => false
+                ];
+                $stateFile = $state;
+                fwrite($fp, json_encode($stateFile));
+                fclose($fp);
+                X::log('loop: created new state.json', 'boot');
             } else {
-                X::log('loop: cache engine connected successfully', 'boot');
+                $stateJson = file_get_contents('cfg/.bbn/state.json');
+                $stateFile = json_decode($stateJson, true);
+                $state = [
+                    'db' => false,
+                    'cache' => false
+                ];
+                X::log('loop: loaded existing state.json', 'boot');
             }
-        } catch (Exception $e) {
-            X::log('loop: exception getting cache engine: ' . $e->getMessage(), 'boot');
+    
+            try {
+                /** @var Cache The cache engine */
+                if (empty($cache)) {
+                  $cache = new Cache();
+                }
+    
+                if (!$cache->getObj()) {
+                    $cache = false;
+                    X::log('loop: cache engine returned no object', 'boot');
+                } else {
+                    X::log('loop: cache engine connected successfully', 'boot');
+                }
+            } catch (Exception $e) {
+                X::log('loop: exception getting cache engine: ' . $e->getMessage(), 'boot');
+            }
         }
 
         if ($cache) {
@@ -126,7 +133,7 @@ set_time_limit(0);
             }
         }
 
-        if ($state['cache'] && defined('BBN_DATABASE')) {
+        if ($state['cache'] && defined('BBN_DATABASE') && !$state['db']) {
             // Database
             try {
                 $db = $db ?: new Db();
@@ -291,5 +298,7 @@ set_time_limit(0);
         } else {
             X::log('boot: skipping DB block. cache=' . var_export($state['cache'], true) . ', BBN_DATABASE defined=' . (defined('BBN_DATABASE') ? 'yes' : 'no'), 'boot');
         }
+
+        sleep(1);
     }
 })();
