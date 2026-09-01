@@ -207,7 +207,14 @@ set_time_limit(0);
             
             if ($cron) {
                 // First go
-                if (!$socketLaunched && ($num > 10)) {
+                if (!$socketLaunched) {
+                    $pidDir = dirname($cron->getPidPath(['type' => 'socket']));
+                    foreach (scandir($pidDir) as $file) {
+                        if ($file != '.'&& $file != '..') {
+                            unlink($pidDir .'/'. $file);
+                        }
+                    }
+                            
                     X::log('about to launch socket', 'socket-start');
                     
                     $pidPath = dirname($cron->getPidPath(['type' => 'cron']));
