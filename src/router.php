@@ -153,7 +153,7 @@ if (!isset($installer)) {
 
         if (defined('BBN_PERMISSIONS') && ($permCls = constant('BBN_PERMISSIONS'))) {
           $permCls = is_string($permCls) && class_exists($permCls) ? $permCls : '\\bbn\\User\\Permissions';
-          $bbn->mvc->addInc('perm', new $permCls($routes));
+          $bbn->mvc->addInc('perm', new $permCls($bbn->db, $routes));
         }
 
         if (defined('BBN_HISTORY') && ($histCls = constant('BBN_HISTORY'))) {
