@@ -199,7 +199,7 @@ $handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec): void {
 
         if (defined('BBN_PERMISSIONS') && ($permCls = constant('BBN_PERMISSIONS'))) {
           $permCls = is_string($permCls) && class_exists($permCls) ? $permCls : '\\bbn\\User\\Permissions';
-          $bbn->mvc->addInc('perm', new $permCls($routes));
+          $bbn->mvc->addInc('perm', new $permCls($bbn->db, $routes));
         }
 
         if (defined('BBN_HISTORY') && ($histCls = constant('BBN_HISTORY'))) {
@@ -272,7 +272,7 @@ $handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec): void {
   }
   finally {
     if (isset($bbn->mvc)) {
-      foreach (['ent', 'perm', 'pref', 'user', 'options'] as $key) {
+      foreach (['perm', 'pref', 'user', 'options'] as $key) {
         if (isset($bbn->mvc->inc->$key)) {
           $bbn->mvc->inc->$key->destruct();
           $bbn->mvc->inc->$key = null;

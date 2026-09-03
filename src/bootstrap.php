@@ -97,7 +97,7 @@ return (function(): array
 
     // If no readable environment's configuration is found the app is not configured correctly
     if (empty($cfgs)) {
-      $errorFn("No environment files in $app_path " . getcwd(). " for $hostname");
+      $errorFn("No environment files in $app_path " . getcwd(). " for $hostname - YAML OK? " . (string)function_exists('yaml_parse'));
     }
 
     /** @var string The hostname */
@@ -174,7 +174,7 @@ return (function(): array
       if (!$home || !is_dir("$home/tmp") || !is_writable("$home/tmp")) {
         $errorFn('Impossible to find the temporary path, please set it in the environment file as tmp_path.');
       }
-      
+
       $cfg['tmp_path'] = "$home/tmp/$cfg[app_name]";
       if (!is_dir($cfg['tmp_path'])) {
         mkdir($cfg['tmp_path'], 0775, true);
@@ -238,7 +238,7 @@ return (function(): array
   define('BBN_URL', $url);
 
   // If the server name is different the request is redirected
-  if (!$bbn->is_cli && ($_SERVER['SERVER_NAME'] !== constant('BBN_SERVER_NAME'))) {
+  if (!$bbn->is_cli && ($_SERVER['HTTP_HOST'] !== constant('BBN_SERVER_NAME'))) {
     header('Location: ' . BBN_URL);
   }
 
@@ -322,6 +322,6 @@ return (function(): array
 
 
   /** @todo default session info, I don't see the point */
-  //OpenSwoole\Coroutine::set(['hook_flags' => OpenSwoole\Runtime::HOOK_ALL]);
+  //Swoole\Coroutine::set(['hook_flags' => Swoole\Runtime::HOOK_ALL]);
   return [$bbn, $routes, $cfg];
 })();
