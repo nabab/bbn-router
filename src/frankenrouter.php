@@ -103,24 +103,28 @@ $handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec): void {
         $bbn->db->setTimezone(constant('BBN_TIMEZONE'));
       }
     }
-    elseif ($bbn->db && $bbn->db->check() && ($now - $lastExec > 10)) {
+    if ($bbn->db && !$bbn->db->check()) {
+      $bbn->db->reconnect();
+    }
+    elseif ($bbn->db && ($now - $lastExec > 10)) {
       if ($bbn->db->ping()) {
         $lastExec = $now;
       }
       else {
         $bbn->db->reconnect();
-        if (!$bbn->db->check() || !$bbn->db->ping()) {
-          bbn\X::log('DB Down after reconnect', 'frankenrouter-run');
-          $bbn->db->flush();
-          $bbn->db->close();
-          unset($bbn->db);
-          exit(0);
-        }
-        else {
-          $bbn->db->setTimezone(constant('BBN_TIMEZONE'));
-          $lastExec = $now;
-        }
       }
+    }
+
+    if (!$bbn->db->check() || !$bbn->db->ping()) {
+      bbn\X::log('DB Down after reconnect', 'db-connection-error');
+      $bbn->db->flush();
+      $bbn->db->close();
+      unset($bbn->db);
+      exit(0);
+    }
+    else {
+      $bbn->db->setTimezone(constant('BBN_TIMEZONE'));
+      $lastExec = $now;
     }
 
     if (isset($bbn->session)) {
