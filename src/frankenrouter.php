@@ -105,6 +105,7 @@ $handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec): void {
     }
     if ($bbn->db && !$bbn->db->check()) {
       $bbn->db->reconnect();
+      bbn\X::log('reconnection? ' . $bbn->db->check(), 'db-error');
     }
     elseif ($bbn->db && ($now - $lastExec > 10)) {
       if ($bbn->db->ping()) {
@@ -112,18 +113,18 @@ $handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec): void {
       }
       else {
         $bbn->db->reconnect();
+        bbn\X::log('reconnection2? ' . $bbn->db->check(), 'db-error');
       }
     }
 
     if (!$bbn->db->check() || !$bbn->db->ping()) {
-      bbn\X::log('DB Down after reconnect', 'db-connection-error');
+      bbn\X::log('DB Down after reconnect', 'db-error');
       $bbn->db->flush();
       $bbn->db->close();
       unset($bbn->db);
       exit(0);
     }
     else {
-      $bbn->db->setTimezone(constant('BBN_TIMEZONE'));
       $lastExec = $now;
     }
 
