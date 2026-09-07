@@ -97,7 +97,7 @@ return (function(): array
 
     // If no readable environment's configuration is found the app is not configured correctly
     if (empty($cfgs)) {
-      $errorFn("No environment files in $app_path " . getcwd(). " for $hostname - YAML OK? " . (string)function_exists('yaml_parse'));
+      $errorFn("No environment files in $app_path " . getcwd(). " for $hostname - YAML OK? " . (function_exists('yaml_parse') ? 'YES' : 'NO'));
     }
 
     /** @var string The hostname */
