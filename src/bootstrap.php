@@ -22,6 +22,22 @@
 /** The only/main object */
 return (function(): array
 {
+  $replaceEnvVars = function(string $tmp): string {
+    return preg_replace_callback(
+      '/\$\{([A-Z_][A-Z0-9_]*)\}/',
+      function ($matches) {
+        $value = getenv($matches[1]);
+        if ($value === false) {
+          throw new RuntimeException(
+            "Environment variable {$matches[1]} is not defined"
+          );
+        }
+
+        return $value;
+      },
+      $tmp
+    );
+  };
   /** @var stdClass $bbn */
   $bbn = new stdClass();
   $bbn->is_cli = php_sapi_name() === 'cli';
@@ -84,7 +100,7 @@ return (function(): array
       && ($tmp = file_get_contents('cfg/environment.yml'))
     ) {
       /** @var array Environment's configuration */
-      $cfgs = yaml_parse($tmp);
+      $cfgs = yaml_parse($replaceEnvVars($tmp));
     }
     // Or parsing JSON environment's configuration
     elseif (
@@ -92,7 +108,7 @@ return (function(): array
       && ($tmp = file_get_contents('cfg/environment.json'))
     ) {
       /** @var array ENvironment's configuration */
-      $cfgs = json_decode($tmp, true);
+      $cfgs = json_decode($replaceEnvVars($tmp), true);
     }
 
     // If no readable environment's configuration is found the app is not configured correctly
@@ -150,9 +166,9 @@ return (function(): array
     /** @var mixed Temporary variable for the general settings, which should be an array */
     $tmp = false;
     if (function_exists('yaml_parse') && file_exists('cfg/settings.yml') && ($tmp = file_get_contents('cfg/settings.yml'))) {
-      $tmp = yaml_parse($tmp);
+      $tmp = yaml_parse($replaceEnvVars($tmp));
     } elseif (function_exists('json_decode') && file_exists('cfg/settings.json') && ($tmp = file_get_contents('cfg/settings.json'))) {
-      $tmp = json_decode($tmp, true);
+      $tmp = json_decode($replaceEnvVars($tmp), true);
     }
 
     // If no general setting is found the app is not configured correctly
