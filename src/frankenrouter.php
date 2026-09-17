@@ -21,11 +21,11 @@
  * @see        mvc
  */
 
-while (!is_file('cfg/.bbn/state.json')) {
+while (!is_file('../cfg/.bbn/state.json')) {
   sleep(1);
 }
 
-$stateJson = json_decode(file_get_contents('cfg/.bbn/state.json'), true);
+$stateJson = json_decode(file_get_contents('../cfg/.bbn/state.json'), true);
 if (defined('BBN_DATABASE') && empty($stateJson['db'])) {
   exit("Wait...");
 }
@@ -44,12 +44,12 @@ $currentUrl = null;
 $handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec): void {
   try {
     bbn\X::log("Entered in the handler: PID=" . getmypid(), 'frankenrouter-run');
-    if (!is_file('cfg/.bbn/state.json')) {
+    if (!is_file('../cfg/.bbn/state.json')) {
       bbn\X::log('State file not found', 'frankenrouter-run');
       exit("Wait...");
     }
 
-    $stateJson = file_get_contents('cfg/.bbn/state.json');
+    $stateJson = file_get_contents('../cfg/.bbn/state.json');
     $state = json_decode($stateJson, true);
     if (empty($state)) {
       bbn\X::log('State file is empty', 'frankenrouter-run');
@@ -155,7 +155,7 @@ $handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec): void {
 
     // Loading users scripts before session is set (but it is started)
     if ($cfg['files']['custom1']) {
-      include_once 'cfg/custom1.php';
+      include_once '../cfg/custom1.php';
     }
 
 
@@ -166,7 +166,7 @@ $handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec): void {
     // CLI
     if (!$bbn->mvc->isStaticRoute()) {
       if ($cfg['files']['session']) {
-        $default = file_get_contents('cfg/session.json');
+        $default = file_get_contents('../cfg/session.json');
         if ($default && ($default = json_decode($default, true))) {
           $defaults = array_merge($bbn->vars['default_session'], $default);
         }
@@ -218,7 +218,7 @@ $handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec): void {
       }
 
       if ($cfg['files']['custom2']) {
-        include_once 'cfg/custom2.php';
+        include_once '../cfg/custom2.php';
       }
     }
 
@@ -250,7 +250,7 @@ $handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec): void {
       $bbn->mvc->process();
       /** @todo Why custom3 not in cli?? */
       if ($cfg['files']['custom3']) {
-        include_once 'cfg/custom3.php';
+        include_once '../cfg/custom3.php';
       }
     }
 

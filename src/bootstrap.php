@@ -59,13 +59,13 @@ return (function(): array
   $app_path = dirname(getcwd()) . '/';
   $hostname = gethostname();
   $app_hash = md5($hostname.$app_path);
-  if (!is_dir('cfg/.bbn')) {
-    mkdir('cfg/.bbn', 0770, true);
+  if (!is_dir('../cfg/.bbn')) {
+    mkdir('../cfg/.bbn', 0770, true);
   }
 
   $cJson = [];
-  if (file_exists('cfg/.bbn/' . $app_hash)) {
-    $cFile = file_get_contents('cfg/.bbn/' . $app_hash);
+  if (file_exists('../cfg/.bbn/' . $app_hash)) {
+    $cFile = file_get_contents('../cfg/.bbn/' . $app_hash);
     try {
       $cJson = json_decode($cFile, true);
     }
@@ -91,21 +91,21 @@ return (function(): array
 
   if (!isset($cfg)) {
     $cJson['updating'] = true;
-    file_put_contents('cfg/.bbn/' . $app_hash, json_encode($cJson, JSON_PRETTY_PRINT));
+    file_put_contents('../cfg/.bbn/' . $app_hash, json_encode($cJson, JSON_PRETTY_PRINT));
     /** @var string Current directory which MUST be the root of the project where the symlink to rhis file is located */
     // Parsing YAML environment's configuration
     if (
       function_exists('yaml_parse')
-      && file_exists('cfg/environment.yml')
-      && ($tmp = file_get_contents('cfg/environment.yml'))
+      && file_exists('../cfg/environment.yml')
+      && ($tmp = file_get_contents('../cfg/environment.yml'))
     ) {
       /** @var array Environment's configuration */
       $cfgs = yaml_parse($replaceEnvVars($tmp));
     }
     // Or parsing JSON environment's configuration
     elseif (
-      file_exists('cfg/environment.json')
-      && ($tmp = file_get_contents('cfg/environment.json'))
+      file_exists('../cfg/environment.json')
+      && ($tmp = file_get_contents('../cfg/environment.json'))
     ) {
       /** @var array ENvironment's configuration */
       $cfgs = json_decode($replaceEnvVars($tmp), true);
@@ -165,9 +165,9 @@ return (function(): array
 
     /** @var mixed Temporary variable for the general settings, which should be an array */
     $tmp = false;
-    if (function_exists('yaml_parse') && file_exists('cfg/settings.yml') && ($tmp = file_get_contents('cfg/settings.yml'))) {
+    if (function_exists('yaml_parse') && file_exists('../cfg/settings.yml') && ($tmp = file_get_contents('../cfg/settings.yml'))) {
       $tmp = yaml_parse($replaceEnvVars($tmp));
-    } elseif (function_exists('json_decode') && file_exists('cfg/settings.json') && ($tmp = file_get_contents('cfg/settings.json'))) {
+    } elseif (function_exists('json_decode') && file_exists('../cfg/settings.json') && ($tmp = file_get_contents('../cfg/settings.json'))) {
       $tmp = json_decode($replaceEnvVars($tmp), true);
     }
 
@@ -198,14 +198,14 @@ return (function(): array
     }
 
     $cfg['files'] = [
-      'custom1' => file_exists('cfg/custom1.php'),
-      'custom2' => file_exists('cfg/custom2.php'),
-      'custom3' => file_exists('cfg/custom3.php'),
-      'session' => file_exists('cfg/session.json'),
-      'end' => file_exists('cfg/end.php')
+      'custom1' => file_exists('../cfg/custom1.php'),
+      'custom2' => file_exists('../cfg/custom2.php'),
+      'custom3' => file_exists('../cfg/custom3.php'),
+      'session' => file_exists('../cfg/session.json'),
+      'end' => file_exists('../cfg/end.php')
     ];
 
-    file_put_contents('cfg/.bbn/' . $app_hash, json_encode(['time' => time(), 'data' => $cfg], JSON_PRETTY_PRINT));
+    file_put_contents('../cfg/.bbn/' . $app_hash, json_encode(['time' => time(), 'data' => $cfg], JSON_PRETTY_PRINT));
   }
 
   // Each value in thew array will define a constant with prefix BBN_
@@ -320,10 +320,10 @@ return (function(): array
   }
 
   // Loading routes configuration
-  if (function_exists('yaml_parse') && file_exists('cfg/routes.yml') && ($tmp = file_get_contents('cfg/routes.yml'))) {
+  if (function_exists('yaml_parse') && file_exists('../cfg/routes.yml') && ($tmp = file_get_contents('../cfg/routes.yml'))) {
     /** @var array $routes */
     $routes = yaml_parse($tmp);
-  } elseif (function_exists('json_decode') && file_exists('cfg/routes.json') && ($tmp = file_get_contents('cfg/routes.json'))) {
+  } elseif (function_exists('json_decode') && file_exists('../cfg/routes.json') && ($tmp = file_get_contents('../cfg/routes.json'))) {
     /** @var array $routes */
     $routes = json_decode($tmp, true);
   } else {

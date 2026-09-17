@@ -74,8 +74,8 @@ if (!isset($installer)) {
     $bbn->db->setTimezone(constant('BBN_TIMEZONE'));
   }
 
-  if ($installer && file_exists('cfg/init.php')) {
-    include_once 'cfg/init.php';
+  if ($installer && file_exists('../cfg/init.php')) {
+    include_once '../cfg/init.php';
   }
 
   $bbn->mvc = new bbn\Mvc($bbn->db, $routes);
@@ -103,14 +103,14 @@ if (!isset($installer)) {
 
   // Loading users scripts before session is set (but it is started)
   if ($cfg['files']['custom1']) {
-    include_once 'cfg/custom1.php';
+    include_once '../cfg/custom1.php';
   }
 
   // CLI
   if (!$bbn->mvc->isStaticRoute($bbn->mvc->getRequest())) {
     if (!$bbn->is_cli) {
       if ($cfg['files']['session']) {
-        $default = file_get_contents('cfg/session.json');
+        $default = file_get_contents('../cfg/session.json');
         if ($default && ($default = json_decode($default, true))) {
           $defaults = array_merge($bbn->vars['default_session'], $default);
         }
@@ -167,7 +167,7 @@ if (!isset($installer)) {
       }
 
       if ($cfg['files']['custom2']) {
-        include_once 'cfg/custom2.php';
+        include_once '../cfg/custom2.php';
       }
     } elseif (defined('BBN_PREFERENCES') && ($prefCls = constant('BBN_PREFERENCES')) && ($userCls = constant('BBN_USER')) && defined('BBN_EXTERNAL_USER_ID')) {
       // Setting up user
@@ -225,7 +225,7 @@ if (!isset($installer)) {
     }
     /** @todo Why custom3 not in cli?? */
     elseif ($cfg['files']['custom3']) {
-      include_once 'cfg/custom3.php';
+      include_once '../cfg/custom3.php';
     }
   }
 
