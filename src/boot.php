@@ -209,18 +209,22 @@ set_time_limit(0);
         // First go
         if (!$socketLaunched) {
           $pidDir = dirname($cron->getPidPath(['type' => 'socket']));
-          foreach (scandir($pidDir) as $file) {
-            if ($file != '.' && $file != '..') {
-              unlink($pidDir . '/' . $file);
+          if (is_dir($pidDir)) {
+            foreach (scandir($pidDir) as $file) {
+              if ($file != '.' && $file != '..') {
+                unlink($pidDir . '/' . $file);
+              }
             }
           }
 
           X::log('about to launch socket', 'socket-start');
 
           $pidPath = dirname($cron->getPidPath(['type' => 'cron']));
-          foreach (glob($pidPath . '/*.pid') as $file) {
-            if (is_file($file)) {
-              unlink($file);
+          if (is_dir($pidPath)) {
+            foreach (glob($pidPath . '/*.pid') as $file) {
+              if (is_file($file)) {
+                unlink($file);
+              }
             }
           }
 
