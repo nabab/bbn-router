@@ -51,7 +51,7 @@ set_time_limit(0);
   while (true) {
     //X::log('loop: start iteration', 'boot');
     if (!$state['cache']) {
-      $fp = @fopen('../cfg/.bbn/state.json', 'x');
+      $fp = @fopen('../data/.bbn/state.json', 'x');
       if ($fp !== false) {
         $state = [
           'db' => false,
@@ -62,7 +62,7 @@ set_time_limit(0);
         fclose($fp);
         X::log('loop: created new state.json', 'boot');
       } else {
-        $stateJson = file_get_contents('../cfg/.bbn/state.json');
+        $stateJson = file_get_contents('../data/.bbn/state.json');
         $stateFile = json_decode($stateJson, true);
         $state = [
           'db' => false,
@@ -91,7 +91,7 @@ set_time_limit(0);
     if ($cache) {
       if (!$stateFile['cache']) {
         $stateFile['cache'] = true;
-        file_put_contents('../cfg/.bbn/state.json', json_encode($stateFile));
+        file_put_contents('../data/.bbn/state.json', json_encode($stateFile));
         X::log('loop: stateFile cache set to true', 'boot');
       }
       if (!$state['cache']) {
@@ -101,7 +101,7 @@ set_time_limit(0);
     } else {
       if ($stateFile['cache']) {
         $stateFile['cache'] = false;
-        file_put_contents('../cfg/.bbn/state.json', json_encode($stateFile));
+        file_put_contents('../data/.bbn/state.json', json_encode($stateFile));
         X::log('loop: stateFile cache set to false (was true)', 'boot');
       }
       if ($state['cache']) {
@@ -117,7 +117,7 @@ set_time_limit(0);
             X::log("loop: retry $i succeeded, cache connected", 'boot');
             if (!$stateFile['cache']) {
               $stateFile['cache'] = true;
-              file_put_contents('../cfg/.bbn/state.json', json_encode($stateFile));
+              file_put_contents('../data/.bbn/state.json', json_encode($stateFile));
             }
             if (!$state['cache']) {
               $state['cache'] = true;
@@ -145,7 +145,7 @@ set_time_limit(0);
         if (!$state['db']) {
           if (!$stateFile['db']) {
             $stateFile['db'] = true;
-            file_put_contents('../cfg/.bbn/state.json', json_encode($stateFile));
+            file_put_contents('../data/.bbn/state.json', json_encode($stateFile));
             X::log('loop: stateFile db set to true', 'boot');
           }
           $state['db'] = true;
@@ -167,7 +167,7 @@ set_time_limit(0);
         if ($state['db']) {
           $state['db'] = false;
           $stateFile['db'] = false;
-          file_put_contents('../cfg/.bbn/state.json', json_encode($stateFile));
+          file_put_contents('../data/.bbn/state.json', json_encode($stateFile));
           X::log('loop: state db set to false due to exception', 'boot');
         }
 
@@ -182,7 +182,7 @@ set_time_limit(0);
             if (!$state['db']) {
               if (!$stateFile['db']) {
                 $stateFile['db'] = true;
-                file_put_contents('../cfg/.bbn/state.json', json_encode($stateFile));
+                file_put_contents('../data/.bbn/state.json', json_encode($stateFile));
               }
               $state['db'] = true;
               $options = $options ?? new Option($db);
