@@ -31,9 +31,9 @@ set_time_limit(0);
   $cron = null;
   $socketLaunched = false;
 
-  if (!is_dir('../cfg/.bbn')) {
-    mkdir('../cfg/.bbn', 0755, true);
-    X::log('boot: created ../cfg/.bbn directory', 'boot');
+  if (!is_dir('../data/.bbn')) {
+    mkdir('../data/.bbn', 0755, true);
+    X::log('boot: created ../data/.bbn directory', 'boot');
   }
 
   if (file_exists(Mvc::getTmpPath() . 'logs/_php_error.lock')) {

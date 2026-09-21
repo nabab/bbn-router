@@ -21,11 +21,11 @@
  * @see        mvc
  */
 
-while (!is_file('../cfg/.bbn/state.json')) {
+while (!is_file('../data/.bbn/state.json')) {
   sleep(1);
 }
 
-$stateJson = json_decode(file_get_contents('../cfg/.bbn/state.json'), true);
+$stateJson = json_decode(file_get_contents('../data/.bbn/state.json'), true);
 if (defined('BBN_DATABASE') && empty($stateJson['db'])) {
   exit("Wait...");
 }
@@ -44,12 +44,12 @@ $currentUrl = null;
 $handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec): void {
   try {
     bbn\X::log("Entered in the handler: PID=" . getmypid(), 'frankenrouter-run');
-    if (!is_file('../cfg/.bbn/state.json')) {
+    if (!is_file('../data/.bbn/state.json')) {
       bbn\X::log('State file not found', 'frankenrouter-run');
       exit("Wait...");
     }
 
-    $stateJson = file_get_contents('../cfg/.bbn/state.json');
+    $stateJson = file_get_contents('../data/.bbn/state.json');
     $state = json_decode($stateJson, true);
     if (empty($state)) {
       bbn\X::log('State file is empty', 'frankenrouter-run');
