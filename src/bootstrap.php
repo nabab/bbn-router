@@ -156,7 +156,7 @@ return (function(): array
         'Your app path: ' . $app_path .
         PHP_EOL . PHP_EOL . print_r(array_map(function ($a) {
           return [
-            'env_name' => $a['env_name'],
+            'env_name' => $a['env_name'] ?? '?',
             'hostname' => $a['hostname'],
             'server_name' => $a['server_name']
           ];
