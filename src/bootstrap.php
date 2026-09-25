@@ -242,21 +242,20 @@ return (function(): array
   }
 
   /** The base URL of the application */
-  $url = 'http'
-    . (defined('BBN_IS_SSL') && constant('BBN_IS_SSL') ? 's' : '')
-    . '://' . constant('BBN_SERVER_NAME')
-    . (defined('BBN_PORT') && constant('BBN_PORT') && !in_array(constant('BBN_PORT'), [80, 443]) ? ':' . constant('BBN_PORT') : '')
-    . (constant('BBN_CUR_PATH') ?: '');
+  $url = 'http' . (defined('BBN_IS_SSL') && constant('BBN_IS_SSL') ? 's' : '') . '://';
+  $url .= $_SERVER['HTTP_HOST'] ?: constant('BBN_SERVER_NAME');
   if (substr($url, -1) !== '/') {
     $url .= '/';
   }
-
-  define('BBN_URL', $url);
-
-  // If the server name is different the request is redirected
-  if (!$bbn->is_cli && ($_SERVER['HTTP_HOST'] !== constant('BBN_SERVER_NAME'))) {
-    header('Location: ' . BBN_URL);
+  $cur = constant('BBN_CUR_PATH') ?: '';
+  if (!in_array($cur, ['', '/'])) {
+    $url .= $cur;
+    if (substr($url, -1) !== '/') {
+      $url .= '/';
+    }
   }
+  
+  define('BBN_URL', $url);
 
   // In case app_prefix isn't defined we use app_name
   if (!defined('BBN_APP_PREFIX') && defined('BBN_APP_NAME')) {
