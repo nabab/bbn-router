@@ -250,7 +250,7 @@ $handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec): void {
       $bbn->mvc->process();
       /** @todo Why custom3 not in cli?? */
       if ($cfg['files']['custom3']) {
-        include_once '../cfg/custom3.php';
+        include('../cfg/custom3.php');
       }
     }
 
