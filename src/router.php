@@ -26,8 +26,8 @@ if (!isset($installer)) {
 
 (function ($installer) {
   [$bbn, $routes, $cfg] = include_once __DIR__.'/bootstrap.php';
-  set_error_handler('\\bbn\\X::logError', E_ALL);
-  set_exception_handler('\\bbn\\X::logException');
+  //set_error_handler('\\bbn\\X::logError', E_ALL);
+  //set_exception_handler('\\bbn\\X::logException');
 
   try {
     $cache = bbn\Cache::getEngine();
@@ -138,14 +138,23 @@ if (!isset($installer)) {
         $bbn->session = new $sessCls($defaults);
         $bbn->mvc->addInc('session', $bbn->session);
         $userCls = is_string($userCls) && class_exists($userCls) ? $userCls : '\\bbn\\User';
-        $bbn->mvc->addInc(
-          'user',
-          new $userCls(
-            $bbn->db,
-            $bbn->mvc->getPost()
-          )
-        );
-
+        $bbn->mvc->addInc('user', new $userCls($bbn->db));
+        if (defined('BBN_CACHE_ENGINE') && (constant('BBN_CACHE_ENGINE') === 'redis')) {
+          $redis = $cache->getObj();
+          $bbn->mvc->inc->user->on('connect', function($ev) use ($redis) {
+            bbn\X::log('connect', 'user');
+            bbn\User\Live::userConnect($redis, $ev->getTarget());
+          });
+          $bbn->mvc->inc->user->on('activity', function($ev) use ($redis) {
+            bbn\X::log('activity', 'user');
+            bbn\User\Live::userActivity($redis, $ev->getTarget());
+          });
+          $bbn->mvc->inc->user->on('disconnect', function($ev) use ($redis) {
+            bbn\X::log('disconnect', 'user');
+            bbn\User\Live::userDisconnect($redis, $ev->getTarget());
+          });
+        }
+        $bbn->mvc->inc->user->init($bbn->mvc->getPost());
         if (defined('BBN_PREFERENCES') && ($prefCls = constant('BBN_PREFERENCES'))) {
           $prefCls = is_string($prefCls) && class_exists($prefCls) ? $prefCls : '\\bbn\\User\\Preferences';
           $bbn->mvc->addInc('pref', new $prefCls($bbn->db));

@@ -146,10 +146,7 @@ $handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec): void {
     // Setting up options
     if (defined('BBN_OPTIONS') && ($optCls = constant('BBN_OPTIONS'))) {
       $optCls = is_string($optCls) && class_exists($optCls) ? $optCls : '\\bbn\\Appui\\Option';
-      $bbn->mvc->addInc(
-        'options',
-        new $optCls($bbn->db)
-      );
+      $bbn->mvc->addInc('options', new $optCls($bbn->db));
     }
 
 
@@ -189,13 +186,23 @@ $handler = static function() use (&$routes, &$bbn, &$cfg, &$lastExec): void {
         $bbn->session = new $sessCls($defaults);
         $bbn->mvc->addInc('session', $bbn->session);
         $userCls = is_string($userCls) && class_exists($userCls) ? $userCls : '\\bbn\\User';
-        $bbn->mvc->addInc(
-          'user',
-          new $userCls(
-            $bbn->db,
-            $bbn->mvc->getPost()
-          )
-        );
+        $bbn->mvc->addInc('user', new $userCls($bbn->db));
+        if (defined('BBN_CACHE_ENGINE') && (constant('BBN_CACHE_ENGINE') === 'redis')) {
+          $redis = $cache->getObj();
+          $bbn->mvc->inc->user->on('connect', function($ev) use ($redis) {
+            bbn\X::log('connect', 'user');
+            bbn\User\Live::userConnect($redis, $ev->getTarget());
+          });
+          $bbn->mvc->inc->user->on('activity', function($ev) use ($redis) {
+            bbn\X::log('activity', 'user');
+            bbn\User\Live::userActivity($redis, $ev->getTarget());
+          });
+          $bbn->mvc->inc->user->on('disconnect', function($ev) use ($redis) {
+            bbn\X::log('disconnect', 'user');
+            bbn\User\Live::userDisconnect($redis, $ev->getTarget());
+          });
+        }
+        $bbn->mvc->inc->user->init($bbn->mvc->getPost());
 
         if (defined('BBN_PREFERENCES') && ($prefCls = constant('BBN_PREFERENCES'))) {
           $prefCls = is_string($prefCls) && class_exists($prefCls) ? $prefCls : '\\bbn\\User\\Preferences';
