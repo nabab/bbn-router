@@ -243,7 +243,7 @@ return (function(): array
 
   /** The base URL of the application */
   $url = 'http' . (defined('BBN_IS_SSL') && constant('BBN_IS_SSL') ? 's' : '') . '://';
-  $url .= $_SERVER['HTTP_HOST'] ?? constant('BBN_SERVER_NAME');
+  $url .= !empty($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : constant('BBN_SERVER_NAME');
   if (substr($url, -1) !== '/') {
     $url .= '/';
   }
