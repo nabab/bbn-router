@@ -225,8 +225,8 @@ return (function(): array
       define('BBN_IS_PROD', $c === 'prod');
     }
 
-    /* @constant string BBN_SERVER_NAME The server's name as in the app's URL */
-    /* @constant BBN_CUR_PATH */
+    /** @constant string BBN_SERVER_NAME The server's name as in the app's URL */
+    /** @constant BBN_CUR_PATH */
     define('BBN_' . strtoupper($n), $c);
   }
 
